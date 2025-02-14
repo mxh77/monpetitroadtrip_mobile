@@ -2,24 +2,24 @@ import React from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { formatDateTimeUTC2Digits } from '../utils/dateUtils';
 
-const GeneralInfo = ({ stage, navigation, fetchStage }) => {
-  const formattedArrivalDateTime = stage.arrivalDateTime ? formatDateTimeUTC2Digits(stage.arrivalDateTime) : 'N/A';
-  const formattedDepartureDateTime = stage.departureDateTime ? formatDateTimeUTC2Digits(stage.departureDateTime) : 'N/A';
+const GeneralInfo = ({ step, navigation, fetchStep }) => {
+  const formattedArrivalDateTime = step.arrivalDateTime ? formatDateTimeUTC2Digits(step.arrivalDateTime) : 'N/A';
+  const formattedDepartureDateTime = step.departureDateTime ? formatDateTimeUTC2Digits(step.departureDateTime) : 'N/A';
 
   return (
     <ScrollView style={styles.tabContent}>
       <View style={styles.generalInfoContainer}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Nom de l'étape :</Text>
-          <Text style={styles.infoValue}>{stage.name}</Text>
+          <Text style={styles.infoValue}>{step.name}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Adresse :</Text>
-          <Text style={styles.infoValue}>{stage.address}</Text>
+          <Text style={styles.infoValue}>{step.address}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('EditStageInfo', { stage: stage, refresh: fetchStage })}>
+        <TouchableOpacity onPress={() => navigation.navigate('EditStepInfo', { step: step, refresh: fetchStep })}>
           <Image
-            source={stage.thumbnail ? { uri: stage.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+            source={step.thumbnail ? { uri: step.thumbnail.url } : require('../../assets/default-thumbnail.png')}
             style={styles.thumbnail}
           />
         </TouchableOpacity>
@@ -33,7 +33,7 @@ const GeneralInfo = ({ stage, navigation, fetchStage }) => {
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Notes :</Text>
-          <Text style={styles.infoValue}>{stage.notes}</Text>
+          <Text style={styles.infoValue}>{step.notes}</Text>
         </View>
       </View>
     </ScrollView>

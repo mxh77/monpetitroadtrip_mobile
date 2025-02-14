@@ -41,6 +41,7 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       const response = await fetch('https://mon-petit-roadtrip.vercel.app/roadtrips');
+      console.log('Réponse de l\'API:', response);
       const data = await response.json();
       setRoadtrips(data);
     } catch (error) {

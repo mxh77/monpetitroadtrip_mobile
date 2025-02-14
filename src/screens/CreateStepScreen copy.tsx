@@ -1,52 +1,48 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { TextInput, Button, RadioButton } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types';
 import { format, parseISO } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA } from '../utils/dateUtils';
-
+import RadioGroup from 'react-native-radio-buttons-group';
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
-type Props = StackScreenProps<RootStackParamList, 'EditStageInfo'>;
+type Props = StackScreenProps<RootStackParamList, 'CreateStep'>;
 
-export default function EditStageInfoScreen({ route, navigation }: Props) {
-    const { type, roadtripId, stageId, stageTitle, stageAddress, stageArrivalDateTime, stageDepartureDateTime, stageNotes, refresh } = route.params;
-    const [addressInput, setAddressInput] = useState(stageAddress || '');
+export default function CreateStepScreen({ route, navigation }: Props) {
+    const { roadtripId } = route.params;
+    const [stepType, setStepType] = useState('1'); // 'stage' or 'stop'
+    const [addressInput, setAddressInput] = useState('');
     const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
     const [pickerDate, setPickerDate] = useState(new Date());
     const [tempDate, setTempDate] = useState(new Date());
 
     const [formState, setFormState] = useState({
-        title: stageTitle || '',
-        address: stageAddress || '',
-        arrivalDateTime: stageArrivalDateTime ? parseISO(stageArrivalDateTime) : new Date(),
-        arrivalDate: stageArrivalDateTime ? parseISO(stageArrivalDateTime) : new Date(),
-        arrivalTime: stageArrivalDateTime ? parseISO(stageArrivalDateTime) : new Date(),
-        departureDate: stageDepartureDateTime ? parseISO(stageDepartureDateTime) : new Date(),
-        departureTime: stageDepartureDateTime ? parseISO(stageDepartureDateTime) : new Date(),
-        notes: stageNotes || ''
+        title: '',
+        address: '',
+        arrivalDate: new Date(),
+        arrivalTime: new Date(),
+        departureDate: new Date(),
+        departureTime: new Date(),
+        notes: '',
     });
-    console.log('formState:', formState);
 
     const googlePlacesRef = useRef(null);
 
     const handleSave = async () => {
+        if (!formState.address) {
+            Alert.alert('Erreur', 'L\'adresse est obligatoire.');
+            return;
+        }
 
-        const isEdit = !!stageId;
-        const url = isEdit
-            ? type === 'stage'
-                ? `https://mon-petit-roadtrip.vercel.app/stages/${stageId}`
-                : `https://mon-petit-roadtrip.vercel.app/stops/${stageId}`
-            : type === 'stage'
-                ? `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stages`
-                : `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stops`;
-
-        const method = isEdit ? 'PUT' : 'POST';
+        const urlStage = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stages`;
+        const urlStop = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stops`;
+        const url = stepType === '1' ? urlStage : urlStop;
         const payload = {
             name: formState.title,
             address: formState.address,
@@ -67,20 +63,19 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
             notes: formState.notes,
         };
 
-        console.log('Méthode:', method);
         console.log('Payload:', JSON.stringify(payload));
 
         try {
             const response = await fetch(url, {
-                method,
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             if (response.ok) {
                 const updatedData = await response.json();
+                console.log('Succès', 'Les informations ont été sauvegardées avec succès.');
                 Alert.alert('Succès', 'Les informations ont été sauvegardées avec succès.');
-                refresh();
                 navigation.goBack();
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
@@ -91,7 +86,7 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
         }
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         navigation.setOptions({
             headerRight: () => (
                 <Button
@@ -112,9 +107,12 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
         }
     }, [addressInput, formState.address]);
 
+    useEffect(() => {
+        console.log('stepType:', stepType);
+    }, [stepType]);
+
     const getTimeFromDate = (date: Date) =>
         `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
-    //`${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
     const handlePickerChange = (type: string, event: any, selectedDate?: Date) => {
         if (event.type === 'dismissed') {
@@ -176,7 +174,7 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
 
     const renderInputField = (field: string) => {
         switch (field) {
-            case 'stageTitle':
+            case 'stepTitle':
                 return (
                     <TextInput
                         label="Nom de l'étape"
@@ -185,7 +183,7 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
                         style={styles.input}
                     />
                 );
-            case 'stageAddress':
+            case 'stepAddress':
                 return (
                     <View style={styles.input}>
                         <GooglePlacesAutocomplete
@@ -252,7 +250,6 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
                 return (
                     <TextInput
                         label="Heure d'arrivée"
-                        //Par défaut, afficher l'heure sans tenir compte du fuseau horaire
                         value={getTimeFromDate(formState.arrivalTime)}
                         onFocus={() => openPicker('arrivalTime')}
                         style={styles.input}
@@ -297,9 +294,18 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+            <View style={styles.radioContainer}>
+                <RadioGroup radioButtons={[
+                    { id: '1', label: 'Étape', value: 'stage', size: 24 },
+                    { id: '2', label: 'Arrêt', value: 'stop', size: 24 }]}
+                    layout='row'
+                    onPress={setStepType}
+                    selectedId={stepType}
+                />
+            </View>
             <SectionList
                 sections={[
-                    { title: 'Informations de l\'étape', data: ['stageTitle', 'stageAddress'] },
+                    { title: 'Informations ', data: ['stepTitle', 'stepAddress'] },
                     { title: 'Dates et heures', data: ['arrivalDate', 'arrivalTime', 'departureDate', 'departureTime'] },
                     { title: 'Notes', data: ['notes'] },
                 ]}
@@ -357,5 +363,16 @@ const styles = StyleSheet.create({
     clearIcon: {
         marginRight: 10,
         marginTop: 10,
+    },
+    radioContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center', // Ajoutez cette ligne pour centrer verticalement
+        marginBottom: 20,
+    },
+    radioButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 10,
     },
 });

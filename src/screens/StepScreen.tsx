@@ -18,21 +18,21 @@ import Accommodations from '../components/Accommodations';
 import Activities from '../components/Activities';
 import Planning from '../components/Planning';
 
-type Props = StackScreenProps<RootStackParamList, 'Stage'>;
+type Props = StackScreenProps<RootStackParamList, 'Step'>;
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 Geocoder.init(GOOGLE_API_KEY);
 
-export default function StageScreen({ route, navigation }: Props) {
+export default function StepScreen({ route, navigation }: Props) {
     //Récupération des paramètres de navigation
-    const { type, roadtripId, stepId: stageId, refresh } = route.params;
-    console.log('Paramètres de navigation:', type, ', roadtripId:', roadtripId, ', stageId:', stageId);
+    const { type, roadtripId, stepId: stepId, refresh } = route.params;
+    console.log('Paramètres de navigation:', type, ', roadtripId:', roadtripId, ', stepId:', stepId);
 
     // États
-    const [stage, setStage] = useState<Step | null>(null);
+    const [step, setStep] = useState<Step | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [coordinatesStage, setCoordinatesStage] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
         address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string
     }>>([]);
@@ -41,17 +41,26 @@ export default function StageScreen({ route, navigation }: Props) {
     }>>([]);
     const mapRef = useRef<MapView>(null);
     const [index, setIndex] = useState(0); // État pour suivre l'onglet actif
-    const [routes] = useState([
+    const [routes, setRoutes] = useState([
         { key: 'infos', title: 'Infos' },
-        { key: 'accommodations', title: 'Hébergements' },
-        { key: 'activities', title: 'Activités' },
         { key: 'planning', title: 'Planning' },
     ]);
+
+    useEffect(() => {
+        if (type === 'Stage') {
+            setRoutes([
+                { key: 'infos', title: 'Infos' },
+                { key: 'accommodations', title: 'Hébergements' },
+                { key: 'activities', title: 'Activités' },
+                { key: 'planning', title: 'Planning' },
+            ]);
+        }
+    }, [type]);
 
 
     // Appeler l'API lors du montage du composant
     useEffect(() => {
-        fetchStage();
+        fetchStep();
     }, []);
 
     useEffect(() => {
@@ -82,42 +91,39 @@ export default function StageScreen({ route, navigation }: Props) {
     };
 
     // Appeler l'API
-    const fetchStage = async () => {
+    const fetchStep = async () => {
         try {
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/stages/${stageId}`);
+            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/steps/${stepId}`);
             const data = await response.json();
-            console.log('Données de l\'API:'); // Ajoutez ce log
+            console.log('Données de l\'API:', data);
 
             const transformedData = {
                 ...data,
                 id: data._id,
             };
-
-            console.log('Données transformées:', transformedData)
-            setStage(transformedData);
+            setStep(transformedData);
 
             // Récupérer les coordonnées de l'adresse
             const coords = await getCoordinates(data.address);
             if (coords) {
-                setCoordinatesStage(coords);
+                setCoordinatesStep(coords);
             }
 
-            // Récupérer les coordonnées des adresses des accommodations
-            const accommodations = data.accommodations;
-            const accommodationCoords = await Promise.all(accommodations.map(async (accommodation: any) => {
-                const coords = await getCoordinates(accommodation.address);
-                return coords ? { ...accommodation, latitude: coords.latitude, longitude: coords.longitude } : null;
-            }));
-            setCoordinatesAccommodations(accommodationCoords.filter(coord => coord !== null));
+            if (type === 'Stage') {
+                const accommodations = data.accommodations;
+                const accommodationCoords = await Promise.all(accommodations.map(async (accommodation: any) => {
+                    const coords = await getCoordinates(accommodation.address);
+                    return coords ? { ...accommodation, latitude: coords.latitude, longitude: coords.longitude } : null;
+                }));
+                setCoordinatesAccommodations(accommodationCoords.filter(coord => coord !== null));
 
-            // Récupérer les coordonnées des adresses des activities
-            const activities = data.activities;
-            const activitieCoords = await Promise.all(activities.map(async (activity: any) => {
-                const coords = await getCoordinates(activity.address);
-                return coords ? { ...activity, latitude: coords.latitude, longitude: coords.longitude } : null;
-            }));
-            setCoordinatesActivities(activitieCoords.filter(coord => coord !== null));
-
+                const activities = data.activities;
+                const activityCoords = await Promise.all(activities.map(async (activity: any) => {
+                    const coords = await getCoordinates(activity.address);
+                    return coords ? { ...activity, latitude: coords.latitude, longitude: coords.longitude } : null;
+                }));
+                setCoordinatesActivities(activityCoords.filter(coord => coord !== null));
+            }
         } catch (error) {
             console.error('Erreur lors de la récupération de l\'étape:', error);
         } finally {
@@ -126,25 +132,25 @@ export default function StageScreen({ route, navigation }: Props) {
         }
     };
 
-    // Utiliser un useEffect pour surveiller les changements de l'état stage
+    // Utiliser un useEffect pour surveiller les changements de l'état step
     useEffect(() => {
-        if (stage) {
-            console.log('Stage mis à jour:', stage.id, stage.name, stage.latitude, stage.longitude);
+        if (step) {
+            console.log('Step mis à jour:', step.id, step.name, step.latitude, step.longitude);
         }
-    }, [stage]);
+    }, [step]);
 
     // Utiliser un useEffect pour surveiller les changements des coordonnées
     useEffect(() => {
-        if (coordinatesStage) {
-            console.log('Coordonnées mises à jour:', coordinatesStage.latitude, coordinatesStage.longitude);
+        if (coordinatesStep) {
+            console.log('Coordonnées mises à jour:', coordinatesStep.latitude, coordinatesStep.longitude);
         }
-    }, [coordinatesStage]);
+    }, [coordinatesStep]);
 
     // Fonction pour ajuster la carte
     const adjustMap = () => {
         if (mapRef.current) {
             const allCoordinates = [
-                coordinatesStage,
+                coordinatesStep,
                 ...coordinatesAccommodations,
                 ...coordinatesActivities,
             ].filter(coord => coord && coord.latitude !== undefined && coord.longitude !== undefined);
@@ -162,7 +168,7 @@ export default function StageScreen({ route, navigation }: Props) {
     // Ajuster la carte pour s'adapter aux marqueurs
     useEffect(() => {
         adjustMap();
-    }, [coordinatesStage, coordinatesAccommodations, coordinatesActivities]);
+    }, [coordinatesStep, coordinatesAccommodations, coordinatesActivities]);
 
     const renderMarkerAccommodations = useCallback(() => {
         if (!coordinatesAccommodations) return null;
@@ -185,7 +191,7 @@ export default function StageScreen({ route, navigation }: Props) {
     useEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <TouchableOpacity onPress={fetchStage} style={{ padding: 10, marginRight: 10 }}>
+                <TouchableOpacity onPress={fetchStep} style={{ padding: 10, marginRight: 10 }}>
                     <Fontawesome5 name="sync" size={20} color="black" />
                 </TouchableOpacity>
             ),
@@ -210,8 +216,8 @@ export default function StageScreen({ route, navigation }: Props) {
         ));
     }, [coordinatesActivities]);
 
-    const navigateToEditStageInfo = () => {
-        navigation.navigate('EditStageInfo', { stage: stage, refresh: fetchStage });
+    const navigateToEditStepInfo = () => {
+        navigation.navigate('EditStepInfo', { step: step, refresh: fetchStep });
     }
 
     const handleEventChange = async (event) => {
@@ -240,18 +246,18 @@ export default function StageScreen({ route, navigation }: Props) {
             if (response.ok) {
                 console.log('Event updated successfully');
                 // Mettre à jour l'état local des événements
-                setStage((prevStage) => {
-                    const updatedStage = { ...prevStage };
+                setStep((prevStep) => {
+                    const updatedStep = { ...prevStep };
                     if (type === 'accommodation') {
-                        updatedStage.accommodations = updatedStage.accommodations.map((accommodation) =>
+                        updatedStep.accommodations = updatedStep.accommodations.map((accommodation) =>
                             accommodation._id === id ? { ...accommodation, arrivalDateTime: startTime, departureDateTime: endTime } : accommodation
                         );
                     } else if (type === 'activity') {
-                        updatedStage.activities = updatedStage.activities.map((activity) =>
+                        updatedStep.activities = updatedStep.activities.map((activity) =>
                             activity._id === id ? { ...activity, startDateTime: startTime, endDateTime: endTime } : activity
                         );
                     }
-                    return updatedStage;
+                    return updatedStep;
                 });
             } else {
                 console.error('Failed to update event');
@@ -261,16 +267,16 @@ export default function StageScreen({ route, navigation }: Props) {
         }
     };
 
-    // const renderScene = SceneMap({
-    //     infos: () => <GeneralInfo stage={stage} navigation={navigation} fetchStage={fetchStage} />,
-    //     activities: () => <Activities stage={stage} navigation={navigation} fetchStage={fetchStage} />,
-    //     accommodations: () => <Accommodations stage={stage} navigation={navigation} fetchStage={fetchStage} />,
-    //     planning: () => <Planning stage={stage} handleEventChange={handleEventChange} />,
-    // });
+    const renderScene = SceneMap({
+        infos: () => <GeneralInfo step={step} navigation={navigation} fetchStep={fetchStep} />,
+        activities: () => type === 'Stage' ? <Activities step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
+        accommodations: () => type === 'Stage' ? <Accommodations step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
+        planning: () => <Planning step={step} handleEventChange={handleEventChange} />,
+    });
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        fetchStage();
+        fetchStep();
     }, []);
 
     if (loading) {
@@ -281,7 +287,7 @@ export default function StageScreen({ route, navigation }: Props) {
         );
     }
 
-    if (!stage || !coordinatesStage || coordinatesStage.latitude === undefined || coordinatesStage.longitude === undefined) {
+    if (!step || !coordinatesStep || coordinatesStep.latitude === undefined || coordinatesStep.longitude === undefined) {
         return (
             <View style={styles.errorContainer}>
                 <Text>Erreur: Les coordonnées de l'étape ne sont pas disponibles.</Text>
@@ -299,8 +305,8 @@ export default function StageScreen({ route, navigation }: Props) {
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={{
-                    latitude: coordinatesStage.latitude,
-                    longitude: coordinatesStage.longitude,
+                    latitude: coordinatesStep.latitude,
+                    longitude: coordinatesStep.longitude,
                     latitudeDelta: 0.0922,
                     longitudeDelta: 0.0421,
                 }}
@@ -313,15 +319,7 @@ export default function StageScreen({ route, navigation }: Props) {
                 {renderMarkerActivities()}
             </MapView>
             <TabView
-                navigationState={{
-                    index,
-                    routes: [
-                        { key: 'infos', title: 'Infos' },
-                        { key: 'accommodations', title: 'Hébergements' },
-                        { key: 'activities', title: 'Activités' },
-                        { key: 'planning', title: 'Planning' }
-                    ]
-                }}
+                navigationState={{ index, routes }}
                 renderScene={renderScene}
                 onIndexChange={setIndex}
                 initialLayout={{ width: 0, height: 0 }}

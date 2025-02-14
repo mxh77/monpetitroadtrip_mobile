@@ -10,17 +10,18 @@ import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA } from '../utils/dateUtils';
 import RadioGroup from 'react-native-radio-buttons-group';
+
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 type Props = StackScreenProps<RootStackParamList, 'CreateStep'>;
 
 export default function CreateStepScreen({ route, navigation }: Props) {
     const { roadtripId } = route.params;
-    const [stepType, setStepType] = useState('1'); // 'stage' or 'stop'
     const [addressInput, setAddressInput] = useState('');
     const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
     const [pickerDate, setPickerDate] = useState(new Date());
     const [tempDate, setTempDate] = useState(new Date());
+    const [stepType, setStepType] = useState('1'); // 'stage' or 'stop'
 
     const [formState, setFormState] = useState({
         title: '',
@@ -30,6 +31,7 @@ export default function CreateStepScreen({ route, navigation }: Props) {
         departureDate: new Date(),
         departureTime: new Date(),
         notes: '',
+        type: 'Stage', // Ajouter le champ type
     });
 
     const googlePlacesRef = useRef(null);
@@ -40,10 +42,9 @@ export default function CreateStepScreen({ route, navigation }: Props) {
             return;
         }
 
-        const urlStage = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stages`;
-        const urlStop = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/stops`;
-        const url = stepType === '1' ? urlStage : urlStop;
+        const url = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/steps`;
         const payload = {
+            type: stepType === '1' ? 'Stage' : 'Stop',
             name: formState.title,
             address: formState.address,
             arrivalDateTime: new Date(Date.UTC(
@@ -284,6 +285,25 @@ export default function CreateStepScreen({ route, navigation }: Props) {
                         numberOfLines={4}
                     />
                 );
+            case 'stepType':
+                return (
+                    <View style={styles.radioContainer}>
+                        <Text style={styles.radioLabel}>Type d'étape :</Text>
+                        <RadioButton.Group
+                            onValueChange={(newValue) => setFormState((prevState) => ({ ...prevState, type: newValue }))}
+                            value={formState.type}
+                        >
+                            <View style={styles.radioButton}>
+                                <RadioButton value="Stage" />
+                                <Text>Stage</Text>
+                            </View>
+                            <View style={styles.radioButton}>
+                                <RadioButton value="Stop" />
+                                <Text>Stop</Text>
+                            </View>
+                        </RadioButton.Group>
+                    </View>
+                );
             default:
                 return null;
         }
@@ -366,9 +386,11 @@ const styles = StyleSheet.create({
     },
     radioContainer: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center', // Ajoutez cette ligne pour centrer verticalement
+        alignItems: 'center',
         marginBottom: 20,
+    },
+    radioLabel: {
+        marginRight: 10,
     },
     radioButton: {
         flexDirection: 'row',

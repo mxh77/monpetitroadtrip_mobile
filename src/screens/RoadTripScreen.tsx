@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
-import { RootStackParamList, Roadtrip, StepType } from '../../types';
+import { RootStackParamList, Roadtrip } from '../../types';
 import { FAB } from 'react-native-paper'; // Importer le bouton flottant
 import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swipeable de react-native-gesture-handler
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
+import Timetable from '../components/timetable/src'; // Importer Timetable
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
+
+const Tab = createBottomTabNavigator();
 
 export default function RoadTripScreen({ route, navigation }: Props) {
   const { roadtripId } = route.params;
@@ -21,7 +25,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     try {
       const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`);
       const data = await response.json();
-      console.log('Données de l\'API:');
+      console.log('Données de l\'API:', data);
       //console.log('Données de l\'API:', data);
 
       // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
@@ -34,26 +38,18 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       const filteredData: Roadtrip = {
         idRoadtrip: data._id,
         name: data.name,
-        steps: [
-          ...data.stages.map((stage: any) => ({
-            id: stage._id,
-            type: 'stage' as StepType,
-            name: stage.name,
-            arrivalDateTime: stage.arrivalDateTime,
-          })),
-          ...data.stops.map((stop: any) => ({
-            id: stop._id,
-            type: 'stop' as StepType,
-            name: stop.name,
-            arrivalDateTime: stop.arrivalDateTime,
-          })),
-        ],
+        steps: data.steps.map((step: any) => ({
+          id: step._id,
+          type: step.type,
+          name: step.name,
+          arrivalDateTime: step.arrivalDateTime,
+          accommodations: step.accommodations || [],
+          activities: step.activities || [],
+        })),
       };
 
       setRoadtrip(filteredData);
-      console.log('Roadtrip récupéré:');
-      //console.log('Roadtrip récupéré:', filteredData);
-
+      console.log('Roadtrip récupéré:', filteredData);
 
     } catch (error) {
       console.error('Erreur lors de la récupération du roadtrip:', error);
@@ -69,19 +65,19 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return unsubscribe;
   }, [navigation, roadtripId]);
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-          // Bloquer l'action par défaut du retour
-          e.preventDefault();
-    
-          // Naviguer vers RoadtripScreen
-          console.log('Navigation vers RoadtripsScreen');
-          navigation.navigate('RoadTrips');
-        });
-    
-        // Nettoyage à la désactivation du composant
-        return unsubscribe;
-      }, [navigation]);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      // Bloquer l'action par défaut du retour
+      e.preventDefault();
+
+      // Naviguer vers RoadtripScreen
+      console.log('Navigation vers RoadtripsScreen');
+      navigation.navigate('RoadTrips');
+    });
+
+    // Nettoyage à la désactivation du composant
+    return unsubscribe;
+  }, [navigation]);
 
   // Afficher une icône de notification en haut à droite
   useEffect(() => {
@@ -89,7 +85,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     navigation.setOptions({
       headerRight: () => (
         alertCount > 0 ? (
-          <TouchableOpacity onPress={() => navigation.navigate('Errors', {roadtripId, errors})}>
+          <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
               <Icon name="bell" size={24} color={alertCount > 0 ? 'red' : 'gray'} />
               {alertCount > 0 && (
@@ -102,23 +98,14 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     });
   }, [navigation, alertCount, errors]);
 
-  // Fonction pour gérer la navigation vers la page de détails de l'étape ou de l'arrêt
+  // Fonction pour gérer la navigation vers la page de détails du step
   const handleStepPress = (step: any) => {
-    if (step.type === 'stage') {
-      navigation.navigate('Stage', {
-        type: 'stage',
-        roadtripId,
-        stepId: step.id,
-        refresh: fetchRoadtrip, // Passer la fonction de rafraîchissement
-      });
-    } else {
-      navigation.navigate('Stop', {
-        type: 'stop',
-        roadtripId,
-        stepId: step.id,
-        refresh: fetchRoadtrip, // Passer la fonction de rafraîchissement
-      });
-    }
+    navigation.navigate('Step', {
+      type: step.type,
+      roadtripId,
+      stepId: step.id,
+      refresh: fetchRoadtrip, // Passer la fonction de rafraîchissement
+    });
   };
 
   // Fonction pour gérer la navigation vers la page de création d'un nouveau step (CreateStepScreen)
@@ -130,25 +117,19 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   }
 
   // Fonction pour gérer la suppression d'un step selon le type (Stage ou Stop)
-  const handleDeleteStep = async (stepId: string, type: string) => {
+  const handleDeleteStep = async (stepId: string) => {
     try {
       let response;
       //Adapter l'appel API selon le type de step
-      if (type === 'stage') {
-        response = await fetch(`https://mon-petit-roadtrip.vercel.app/stages/${stepId}`, {
-          method: 'DELETE',
-        });
-      } else {
-        response = await fetch(`https://mon-petit-roadtrip.vercel.app/stops/${stepId}`, {
-          method: 'DELETE',
-        });
-      }
+      response = await fetch(`https://mon-petit-roadtrip.vercel.app/steps/${stepId}`, {
+        method: 'DELETE',
+      });
 
       if (response.ok) {
         fetchRoadtrip(); // Recharger les données
-        Alert.alert('Succès', 'L\'étape a été supprimée.');
+        Alert.alert('Succès', 'Le step a été supprimé.');
       } else {
-        Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression de l\'étape.');
+        Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du step.');
       }
     } catch (error) {
       Alert.alert('Erreur', 'Une erreur est survenue. Veuillez réessayer.');
@@ -156,20 +137,20 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   }
 
   // Fonction pour afficher une alerte de confirmation avant suppression du stage ou du stop
-  const confirmDeleteStep = (stepId: string, type: string) => {
+  const confirmDeleteStep = (stepId: string) => {
     Alert.alert(
-      'Supprimer l\'étape',
-      'Êtes-vous sûr de vouloir supprimer cette étape ?',
+      'Supprimer le step',
+      'Êtes-vous sûr de vouloir supprimer ce step ?',
       [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: () => handleDeleteStep(stepId, type) },
+        { text: 'Supprimer', style: 'destructive', onPress: () => handleDeleteStep(stepId) },
       ],
       { cancelable: true }
     );
   };
 
-  const renderRightActions = (stageId: string, type: any) => (
-    <TouchableOpacity style={styles.deleteButton} onPress={() => confirmDeleteStep(stageId, type)}>
+  const renderRightActions = (stepId: string) => (
+    <TouchableOpacity style={styles.deleteButton} onPress={() => confirmDeleteStep(stepId)}>
       <Icon name="trash" size={24} color="white" />
     </TouchableOpacity>
   );
@@ -190,26 +171,30 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   }
 
-  // Triez les étapes par arrivalDateTime
+  // Triez les steps par arrivalDateTime
   const sortedSteps = roadtrip.steps.sort((a, b) =>
     new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
-  );
+  ).map(step => ({
+    ...step,
+    accommodations: step.accommodations || [],
+    activities: step.activities || [],
+  }));
 
-  return (
+  const StepList = () => (
     <View style={styles.container}>
       <Text style={styles.title}>{roadtrip.name}</Text>
       <FlatList
         data={sortedSteps}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Swipeable renderRightActions={() => renderRightActions(item.id, item.type)}>
+          <Swipeable renderRightActions={() => renderRightActions(item.id)}>
             <TouchableOpacity
               style={styles.item}
               onPress={() => handleStepPress(item)}
             >
               <View style={styles.itemHeader}>
                 <Icon
-                  name={item.type === 'stage' ? 'bed' : 'flag'}
+                  name={item.type === 'Stage' ? 'bed' : 'flag'}
                   size={20}
                   color="#007BFF"
                   style={styles.itemIcon}
@@ -237,6 +222,106 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         onPress={handleAddStep}
       />
     </View>
+  );
+
+  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+
+  const RoadTripPlanning = () => {
+    console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+
+    const events = sortedSteps.flatMap(step => {
+      console.log('Processing step:', step);
+
+      if (step.type === 'Stop') {
+        const stopEvent = {
+          id: step.id,
+          title: step.name,
+          startTime: new Date(step.arrivalDateTime),
+          endTime: new Date(new Date(step.arrivalDateTime).getTime() + 3600000), // Assuming each event lasts 1 hour
+          color: 'blue',
+          type: 'stop',
+        };
+        console.log('Stop event:', stopEvent);
+        return [stopEvent];
+      } else if (step.type === 'Stage') {
+        const accommodations = step.accommodations?.map(accommodation => {
+          const accommodationEvent = {
+            id: accommodation._id,
+            title: accommodation.name,
+            startTime: new Date(accommodation.arrivalDateTime),
+            endTime: new Date(accommodation.departureDateTime),
+            color: 'green',
+            type: 'accommodation',
+          };
+          console.log('Accommodation event:', accommodationEvent);
+          return accommodationEvent;
+        }) || [];
+
+        const activities = step.activities?.map(activity => {
+          const activityEvent = {
+            id: activity._id,
+            title: activity.name,
+            startTime: new Date(activity.startDateTime),
+            endTime: new Date(activity.endDateTime),
+            color: 'orange',
+            type: 'activity',
+          };
+          console.log('Activity event:', activityEvent);
+          return activityEvent;
+        }) || [];
+
+        console.log('Stage events:', [...accommodations, ...activities]);
+        return [...accommodations, ...activities];
+      }
+
+      return [];
+    });
+
+    console.log('Events:', events); // Ajoutez ce log pour vérifier les événements
+
+    return (
+      <View style={styles.container}>
+        <Timetable
+          events={events}
+          mode="week"
+          startHour={0}
+          endHour={24}
+          defaultScrollHour={16}
+          slotDuration={15}
+          currentDate={new Date(roadtrip.steps[0].arrivalDateTime)} // Date de début du roadtrip
+          onEventPress={(event) => console.log('Event press:', event)}
+          onEventChange={(event) => console.log('Event change:', event)}
+          ratioWidthEventsMax={1}
+          isDraggable={false}
+        />
+      </View>
+    );
+  };
+
+  return (
+    <Tab.Navigator id={undefined}>
+      <Tab.Screen
+        name="Liste des étapes"
+        component={StepList}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="list" color={color} size={size} />
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Planning"
+        component={RoadTripPlanning}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="calendar" color={color} size={size} />
+          ),
+          headerShown: false,
+
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 

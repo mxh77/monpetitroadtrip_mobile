@@ -1,12 +1,11 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-export type StepType = 'stage' | 'stop';
 
 export interface Step {
   id: string;
   roadtripId: string;
-  type: StepType;
+  type: string;
   name: string;
   address: string;
   arrivalDateTime: string;
@@ -76,6 +75,12 @@ export type RootStackParamList = {
   RoadTrip: { roadtripId: string };
   EditRoadTrip: { roadtripId?: string };
   CreateStep: { roadtripId: string; refresh: () => void };
+  Step: {
+    type: string;
+    roadtripId: string;
+    stepId: string;
+    refresh: () => void;
+  };
   Stage: {
     type: 'stage';
     roadtripId: string;
@@ -86,6 +91,10 @@ export type RootStackParamList = {
     type: 'stop';
     roadtripId: string;
     stepId: string;
+    refresh: () => void;
+  };
+  EditStepInfo: {
+    step: Step;
     refresh: () => void;
   };
   EditStageInfo: {
@@ -117,11 +126,25 @@ export type RootStackParamList = {
 };
 
 // Types pour les props de navigation et de route
+export type StepScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Step'>;
+export type StepScreenRouteProp = RouteProp<RootStackParamList, 'Step'>;
+export type StepScreenProps = {
+  navigation: StepScreenNavigationProp;
+  route: StepScreenRouteProp;
+};
+
 export type StageScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Stage'>;
 export type StageScreenRouteProp = RouteProp<RootStackParamList, 'Stage'>;
 export type StageScreenProps = {
   navigation: StageScreenNavigationProp;
   route: StageScreenRouteProp;
+};
+
+export type EditStepInfoScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditStepInfo'>;
+export type EditStepInfoScreenRouteProp = RouteProp<RootStackParamList, 'EditStepInfo'>;
+export type EditStepInfoScreenProps = {
+  navigation: EditStepInfoScreenNavigationProp;
+  route: EditStepInfoScreenRouteProp;
 };
 
 export type EditStageInfoScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditStageInfo'>;

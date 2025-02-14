@@ -6,25 +6,15 @@ export const checkDateConsistency = (roadtrip) => {
   let alertCount = 0;
   const errorMessages: { message: string, stepId: string, stepType: string }[] = [];
 
-  // Fusionner stages et stops en une seule liste steps et trier par arrivalDateTime croissant
-  const steps = [
-    ...roadtrip.stages.map(stage => ({ ...stage, type: 'stage', id: stage._id })),
-    ...roadtrip.stops.map(stop => ({ ...stop, type: 'stop', id: stop._id }))
-  ].sort((a, b) => new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime());
-  // Règles globales pour le Roadtrip
-  if (new Date(roadtrip.startDateTime) >= new Date(roadtrip.endDateTime)) {
-    alertCount++;
-    errorMessages.push({ message: 'Roadtrip : Date de début < Date de fin.', stepId: '', stepType: '' });
-  }
+  const steps = roadtrip.steps.sort((a, b) => new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime());
 
   steps.forEach((step) => {
-    // Règles pour les Stages
-    if (step.type === 'stage') {
-      if (new Date(step.arrivalDateTime) > new Date(step.departureDateTime)) {
-        alertCount++;
-        errorMessages.push({ message: `${step.name}\n - Date d'arrivée > Date de départ`, stepId: step.id, stepType: step.type });
-      }
+    if (new Date(step.arrivalDateTime) > new Date(step.departureDateTime)) {
+      alertCount++;
+      errorMessages.push({ message: `${step.name}\n - Date d'arrivée > Date de départ`, stepId: step.id, stepType: step.type });
+    }
 
+    if (step.type === 'stage') {
       step.accommodations?.forEach((accommodation) => {
         if (new Date(accommodation.arrivalDateTime) > new Date(accommodation.departureDateTime)) {
           alertCount++;

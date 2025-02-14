@@ -5,17 +5,17 @@ import { formatDateJJMMAA } from '../utils/dateUtils';
 import { openInGoogleMaps, openWebsite } from '../utils/utils';
 import { TriangleCornerTopRight } from './shapes';
 
-const Activities = ({ stage, navigation, fetchStage }) => (
+const Activities = ({ step, navigation, fetchStep }) => (
   <View style={{ flex: 1 }}>
     <ScrollView style={styles.tabContent}>
-      {stage.activities.map((activity, index) => (
+      {step.activities.map((activity, index) => (
         <Card key={index} style={styles.card}>
           <Card.Title titleStyle={styles.cardTitle} title={activity.name} />
           <Card.Content>
             <Text style={styles.infoText}>Du {formatDateJJMMAA(activity.startDateTime)} au {formatDateJJMMAA(activity.endDateTime)}</Text>
           </Card.Content>
           <Card.Content>
-            <TouchableOpacity onPress={() => navigation.navigate('EditActivity', { stage: null, activity, refresh: fetchStage })}>
+            <TouchableOpacity onPress={() => navigation.navigate('EditActivity', { step: null, activity, refresh: fetchStep })}>
               <Image
                 source={activity.thumbnail ? { uri: activity.thumbnail.url } : require('../../assets/default-thumbnail.png')}
                 style={styles.thumbnail}
@@ -44,7 +44,7 @@ const Activities = ({ stage, navigation, fetchStage }) => (
     </ScrollView>
     <TouchableOpacity
       style={styles.triangleButtonContainer}
-      onPress={() => navigation.navigate('EditActivity', { stage, activity: null, refresh: fetchStage })}
+      onPress={() => navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep })}
     >
       <TriangleCornerTopRight style={styles.triangleButton} />
     </TouchableOpacity>
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
   },
   triangleButtonContainer: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
+    top: 0,
+    right: 0,
   },
   triangleButton: {
     width: 50,

@@ -17,6 +17,6 @@ export interface TimetableProps {
   currentDate?: Date;
   onEventPress?: (event: Event) => void;
   onEventChange?: (event: Event) => void;
-  ratioWidthEventsMax?: number; 
-
+  ratioWidthEventsMax?: number;
+  isDraggable?: boolean; // Ajouter la prop isDraggable
 }

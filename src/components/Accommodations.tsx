@@ -1,21 +1,21 @@
 import React from 'react';
-import {Text, View, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Card, Button } from 'react-native-paper';
 import { formatDateJJMMAA } from '../utils/dateUtils';
 import { openInGoogleMaps, openWebsite } from '../utils/utils';
 import { TriangleCornerTopRight } from '../components/shapes';
 
-const Accommodations = ({ stage, navigation, fetchStage }) => (
+const Accommodations = ({ step, navigation, fetchStep }) => (
   <View style={{ flex: 1 }}>
     <ScrollView style={styles.tabContent}>
-      {stage.accommodations.map((accommodation, index) => (
+      {step.accommodations.map((accommodation, index) => (
         <Card key={index} style={styles.card}>
           <Card.Title titleStyle={styles.cardTitle} title={accommodation.name} />
           <Card.Content>
             <Text style={styles.infoText}>Du {formatDateJJMMAA(accommodation.arrivalDateTime)} au {formatDateJJMMAA(accommodation.departureDateTime)}</Text>
           </Card.Content>
           <Card.Content>
-            <TouchableOpacity onPress={() => navigation.navigate('EditAccommodation', { stage: null, accommodation, refresh: fetchStage })}>
+            <TouchableOpacity onPress={() => navigation.navigate('EditAccommodation', { step: null, accommodation, refresh: fetchStep })}>
               <Image
                 source={accommodation.thumbnail ? { uri: accommodation.thumbnail.url } : require('../../assets/default-thumbnail.png')}
                 style={styles.thumbnail}
@@ -44,7 +44,7 @@ const Accommodations = ({ stage, navigation, fetchStage }) => (
     </ScrollView>
     <TouchableOpacity
       style={styles.triangleButtonContainer}
-      onPress={() => navigation.navigate('EditAccommodation', { stage, accommodation: null, refresh: fetchStage })}
+      onPress={() => navigation.navigate('EditAccommodation', { step, accommodation: null, refresh: fetchStep })}
     >
       <TriangleCornerTopRight style={styles.triangleButton} />
     </TouchableOpacity>
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
   },
   triangleButtonContainer: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
+    top: 0,
+    right: 0,
   },
   triangleButton: {
     width: 50,

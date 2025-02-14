@@ -13,7 +13,8 @@ interface DayViewProps {
   currentDate?: Date; // Date actuelle
   onEventPress?: (event: EventType) => void;
   onEventChange?: (event: EventType) => void; // Callback pour gérer le changement de position de l'événement
-  ratioWidthEventsMax:number // Passer la prop largeurMaxEvent
+  ratioWidthEventsMax: number; // Passer la prop largeurMaxEvent
+  isDraggable?: boolean; // Ajouter la prop isDraggable
 }
 
 const { width: DEVICE_WIDTH } = Dimensions.get('window');
@@ -27,8 +28,8 @@ type TimeSlot = { start: number; end: number; top: number }; // Créneau horaire
 type Event = { start: number; end: number; id: string; color: string; title: string };
 type PositionedEvent = Event & { top: number; height: number; width: number; left: number; color: string; title: string };
 
-const DayView: React.FC<DayViewProps> = ({ events, startHour, endHour, slotDuration, onEventPress, onEventChange, defaultScrollHour = 0, currentDate ,ratioWidthEventsMax = 1}) => {
-  const EVENT_COLUMN_WIDTH = MAX_WIDTH * ratioWidthEventsMax ; // Largeur des événements ajustée à la largeur du device
+const DayView: React.FC<DayViewProps> = ({ events, startHour, endHour, slotDuration, onEventPress, onEventChange, defaultScrollHour = 0, currentDate, ratioWidthEventsMax = 1, isDraggable = true }) => {
+  const EVENT_COLUMN_WIDTH = MAX_WIDTH * ratioWidthEventsMax; // Largeur des événements ajustée à la largeur du device
   const scrollViewRef = useRef<ScrollView>(null);
   const [draggingEvent, setDraggingEvent] = useState<EventType | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
@@ -244,11 +245,15 @@ const DayView: React.FC<DayViewProps> = ({ events, startHour, endHour, slotDurat
               <PanGestureHandler
                 key={event.id}
                 onGestureEvent={(e) => {
+                  if (!isDraggable) return; // Désactiver le drag-and-drop si isDraggable est false
                   const stepHeight = (MOVE_STEP / 60) * HOUR_HEIGHT;
                   const steps = Math.round(e.nativeEvent.translationY / stepHeight);
                   animatedTop.value = event.top + steps * stepHeight;
                 }}
-                onHandlerStateChange={(e) => handleGestureEvent(e, events.find(e => e.id === event.id)!)}
+                onHandlerStateChange={(e) => {
+                  if (!isDraggable) return; // Désactiver le drag-and-drop si isDraggable est false
+                  handleGestureEvent(e, events.find(e => e.id === event.id)!);
+                }}
               >
                 <Animated.View
                   style={[
