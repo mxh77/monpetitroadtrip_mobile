@@ -43,7 +43,7 @@ export default function StepScreen({ route, navigation }: Props) {
     const [index, setIndex] = useState(0); // État pour suivre l'onglet actif
     const [routes, setRoutes] = useState([
         { key: 'infos', title: 'Infos' },
-        { key: 'planning', title: 'Planning' },
+       // { key: 'planning', title: 'Planning' },
     ]);
 
     useEffect(() => {
@@ -52,7 +52,7 @@ export default function StepScreen({ route, navigation }: Props) {
                 { key: 'infos', title: 'Infos' },
                 { key: 'accommodations', title: 'Hébergements' },
                 { key: 'activities', title: 'Activités' },
-                { key: 'planning', title: 'Planning' },
+                //{ key: 'planning', title: 'Planning' },
             ]);
         }
     }, [type]);
@@ -271,7 +271,7 @@ export default function StepScreen({ route, navigation }: Props) {
         infos: () => <GeneralInfo step={step} navigation={navigation} fetchStep={fetchStep} />,
         activities: () => type === 'Stage' ? <Activities step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
         accommodations: () => type === 'Stage' ? <Accommodations step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
-        planning: () => <Planning step={step} handleEventChange={handleEventChange} />,
+        //planning: () => <Planning step={step} handleEventChange={handleEventChange} />,
     });
 
     const onRefresh = useCallback(() => {

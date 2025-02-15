@@ -80,7 +80,7 @@ const Timetable: React.FC<TimetableProps> = ({
             currentDate={currentDateState}
             onEventPress={onEventPress}
             onEventChange={onEventChange}
-            ratioWidthEventsMax={ratioWidthEventsMax}
+            ratioWidthEventsMax={0.9} // Valeur par défaut de 0.9 pour DayView
             isDraggable={isDraggable} // Passer la prop isDraggable
           />
         ) : (
@@ -94,8 +94,7 @@ const Timetable: React.FC<TimetableProps> = ({
             currentDate={currentDateState}
             onEventPress={onEventPress}
             onEventChange={onEventChange}
-            //ratioWidthEventsMax={ratioWidthEventsMax}
-            ratioWidthEventsMax={1}
+            ratioWidthEventsMax={1} // Valeur par défaut de 1 pour WeekView
             isDraggable={isDraggable} // Passer la prop isDraggable
           />
         )}

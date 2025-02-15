@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl ,TouchableOpacity} from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 import { RootStackParamList } from '../../types';
@@ -154,17 +154,17 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Pressable style={styles.modalButton} onPress={handleEditRoadtrip}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleEditRoadtrip}>
               <Icon name="edit" size={24} color="#007BFF" />
               <Text style={styles.modalButtonText}>Modifier</Text>
-            </Pressable>
-            <Pressable style={styles.modalButton} onPress={handleDeleteRoadtrip}>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalButton} onPress={handleDeleteRoadtrip}>
               <Icon name="delete" size={24} color="#FF0000" />
               <Text style={styles.modalButtonText}>Supprimer</Text>
-            </Pressable>
-            <Pressable style={styles.modalButton} onPress={() => setModalVisible(false)}>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalButtonText}>Annuler</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -11,6 +11,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { format, parseISO, set } from 'date-fns';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -26,6 +27,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
   const [pickerDate, setPickerDate] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
+  const [files, setFiles] = useState<any[]>([]);
 
   const [formState, setFormState] = useState<Accommodation>({
     _id: accommodation?._id || '',
@@ -300,6 +302,13 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     }
   };
 
+  const pickDocument = async () => {
+    let result = await DocumentPicker.getDocumentAsync({});
+    if (!result.canceled) {
+      setFiles([...files, result]);
+    }
+  };
+
   const renderInputField = (field: string) => {
     switch (field) {
       case 'name':
@@ -498,6 +507,16 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
           />
         </TouchableOpacity>
       </View>
+      <Button onPress={pickDocument}>Ajouter un fichier</Button>
+      {files.length > 0 && (
+        <View style={styles.filesContainer}>
+          {files.map((file, index) => (
+            <View key={index} style={styles.fileItem}>
+              <Text>{file.name}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       <SectionList
         sections={[
           { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
@@ -578,5 +597,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#007BFF',
     textDecorationLine: 'underline',
+  },
+  filesContainer: {
+    marginVertical: 20,
+  },
+  fileItem: {
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+    marginBottom: 10,
   },
 });

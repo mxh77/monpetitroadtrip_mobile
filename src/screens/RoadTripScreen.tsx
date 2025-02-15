@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
-import { RootStackParamList, Roadtrip } from '../../types';
+import { RootStackParamList, Roadtrip, File } from '../../types';
 import { FAB } from 'react-native-paper'; // Importer le bouton flottant
 import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swipeable de react-native-gesture-handler
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
@@ -43,6 +43,8 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           type: step.type,
           name: step.name,
           arrivalDateTime: step.arrivalDateTime,
+          departureDateTime: step.departureDateTime,
+          thumbnail: step.thumbnail, // Ajouter la propriété thumbnail
           accommodations: step.accommodations || [],
           activities: step.activities || [],
         })),
@@ -201,16 +203,39 @@ export default function RoadTripScreen({ route, navigation }: Props) {
                 />
                 <Text style={styles.itemTitle}>{item.name}</Text>
               </View>
-              <Text style={styles.itemDateTime}>
-                {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'UTC'
-                })}
-              </Text>
+              <Image
+                source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+                style={styles.thumbnail}
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
+                  <Text style={styles.itemDateTime}>
+                    {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'UTC'
+                    })}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+
+                  <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
+                  <Text style={styles.itemDateTime}>
+                    {new Date(item.departureDateTime).toLocaleString('fr-FR', {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'UTC'
+                    })}
+                  </Text>
+                </View>
+              </View>
             </TouchableOpacity>
           </Swipeable>
         )}
@@ -365,6 +390,13 @@ const styles = StyleSheet.create({
   itemDateTime: {
     fontSize: 14,
     color: 'gray',
+  },
+  thumbnail: {
+    width: '100%',
+    height: 150,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 8,
   },
   fab: {
     position: 'absolute',
