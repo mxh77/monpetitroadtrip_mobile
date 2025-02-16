@@ -17,7 +17,7 @@ type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 export default function EditAccommodationScreen({ route, navigation }: Props) {
-  const { stage, accommodation, refresh } = route.params;
+  const { step, accommodation, refresh } = route.params;
   const isEditing = !!accommodation;
   console.log('Accommodation:', accommodation);
 
@@ -58,7 +58,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     console.log('Accommodation ID:', accommodation?._id);
     const url = isEditing
       ? `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}`
-      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${stage.roadtripId}/stages/${stage.id}/accommodations`;
+      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${step.roadtripId}/steps/${step.id}/accommodations`;
     console.log('formState:', formState);
 
     const payload = {
@@ -303,9 +303,16 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   };
 
   const pickDocument = async () => {
-    let result = await DocumentPicker.getDocumentAsync({});
-    if (!result.canceled) {
-      setFiles([...files, result]);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({});
+      if (result.canceled) {
+        Alert.alert("Annulé", "Sélection du fichier annulée.");
+      } else {
+        Alert.alert("Fichier sélectionné", result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de sélectionner un fichier.");
+      console.error(error);
     }
   };
 
@@ -506,20 +513,13 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
             style={styles.thumbnail}
           />
         </TouchableOpacity>
+        <Button mode="contained" onPress={pickDocument}>Sélectionner un fichier</Button>
+
       </View>
-      <Button onPress={pickDocument}>Ajouter un fichier</Button>
-      {files.length > 0 && (
-        <View style={styles.filesContainer}>
-          {files.map((file, index) => (
-            <View key={index} style={styles.fileItem}>
-              <Text>{file.name}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+
       <SectionList
         sections={[
-          { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
+          { title: 'Inforcxmations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
           { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
           { title: 'Dates de séjour', data: ['arrivalDateTime', 'departureDateTime', 'nights'] },
           { title: 'Autres informations', data: ['price', 'notes'] },

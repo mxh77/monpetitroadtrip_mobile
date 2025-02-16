@@ -16,7 +16,7 @@ type Props = StackScreenProps<RootStackParamList, 'EditActivity'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 export default function EditActivityScreen({ route, navigation }: Props) {
-  const { stage, activity, refresh } = route.params;
+  const { step, activity, refresh } = route.params;
   const isEditing = !!activity;
   console.log('Activity:', activity);
 
@@ -55,7 +55,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     console.log('Activity ID:', activity?._id);
     const url = isEditing
       ? `https://mon-petit-roadtrip.vercel.app/activities/${activity._id}`
-      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${stage.roadtripId}/stages/${stage.id}/activities`;
+      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${step.roadtripId}/steps/${step.id}/activities`;
     console.log('formState:', formState);
 
     const payload = {

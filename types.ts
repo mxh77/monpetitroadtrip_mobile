@@ -106,13 +106,13 @@ export type RootStackParamList = {
     refresh: () => void;
   };
   EditAccommodation: {
-    stage: Step;
+    step: Step;
     accommodation: Accommodation;
     refresh: () => void;
 
   };
   EditActivity: {
-    stage: Step;
+    step: Step;
     activity: Activity;
     refresh: () => void;
 

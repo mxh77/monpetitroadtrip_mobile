@@ -47,15 +47,5 @@ export default ({ config }) => {
         projectId: "547f7eb3-324d-4060-91c6-924ef3f69de8", // Ajoutez ici l’identifiant du projet
       },
     },
-    plugins: [
-      [
-        "expo-document-picker",
-        {
-          "iOS": {
-            "usesICloudStorage": true
-          }
-        }
-      ]
-    ]
   };
 };
