@@ -12,6 +12,9 @@ import { format, parseISO, set } from 'date-fns';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import InfosAccommodationTab from '../components/InfosAccommodationTab';
+import FilesTab from '../components/FilesTab';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -28,6 +31,11 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const [pickerDate, setPickerDate] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
   const [files, setFiles] = useState<any[]>([]);
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'infos', title: 'Infos' },
+    { key: 'files', title: 'Fichiers' },
+  ]);
 
   const [formState, setFormState] = useState<Accommodation>({
     _id: accommodation?._id || '',
@@ -316,190 +324,76 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     }
   };
 
-  const renderInputField = (field: string) => {
-    switch (field) {
-      case 'name':
-        return (
-          <TextInput
-            label="Nom de l'hébergement"
-            value={formState.name}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
-            style={styles.input}
-          />
-        );
-      case 'address':
-        return (
-          <View style={styles.input}>
-            <GooglePlacesAutocomplete
-              ref={googlePlacesRef}
-              placeholder="Adresse"
-              onPress={(data, details = null) => {
-                console.log('Address selected:', data.description);
-                setAddressInput(data.description);
-              }}
-              query={{
-                key: GOOGLE_API_KEY,
-                language: 'fr',
-              }}
-              textInputProps={{
-                value: addressInput,
-                onChangeText: (text) => {
-                  console.log("onChangeText (text:", text, "addressInput:", addressInput, "formState.address:", formState.address, ")");
-                  if (text !== "" || (text === "" && addressInput !== formState.address)) {
-                    console.log('Setting addressInput to:', text, " / addressInput:", addressInput, " / formState.address:", formState.address, ")");
-                    setAddressInput(text);
-                  }
-                },
-              }}
-              listViewDisplayed={false}
-              fetchDetails={true}
-              enablePoweredByContainer={false}
-              styles={{
-                textInputContainer: {
-                  backgroundColor: 'rgba(0,0,0,0)',
-                  borderTopWidth: 0,
-                  borderBottomWidth: 0,
-                },
-                textInput: {
-                  marginLeft: 0,
-                  marginRight: 0,
-                  height: 38,
-                  color: '#5d5d5d',
-                  fontSize: 16,
-                },
-                predefinedPlacesDescription: {
-                  color: '#1faadb',
-                },
-              }}
-              renderRightButton={() => (
-                <TouchableOpacity onPress={() => {
-                  setAddressInput('');
-                }}>
-                  <Icon name="times-circle" size={20} color="gray" style={styles.clearIcon} />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        );
-      case 'website':
-        return (
-          <TextInput
-            label="Site Web"
-            value={formState.website}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, website: text }))}
-            style={styles.input}
-          />
-        );
-      case 'phone':
-        return (
-          <TextInput
-            label="Téléphone"
-            value={formState.phone}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, phone: text }))}
-            style={styles.input}
-          />
-        );
-      case 'email':
-        return (
-          <TextInput
-            label="Mail"
-            value={formState.email}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, email: text }))}
-            style={styles.input}
-          />
-        );
-      case 'reservationNumber':
-        return (
-          <TextInput
-            label="N° Réservation"
-            value={formState.reservationNumber}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, reservationNumber: text }))}
-            style={styles.input}
-          />
-        );
-      case 'confirmationDateTime':
-        return (
-          <TextInput
-            label="Date de confirmation"
-            value={formConfirmationDate ? format(formConfirmationDate, 'dd/MM/yyyy') : ''}
-            onFocus={() => openPicker('confirmationDate')}
-            style={styles.input}
-          />
-        );
-      case 'arrivalDateTime':
-        return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TextInput
-                label="Date d'arrivée"
-                value={format(formArrivalDate, 'dd/MM/yyyy')}
-                onFocus={() => openPicker('arrivalDate')}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.rowItem}>
-              <TextInput
-                label="Heure d'arrivée"
-                value={getTimeFromDate(new Date(formArrivalTime))}
-                onFocus={() => openPicker('arrivalTime')}
-                style={styles.input}
-              />
-            </View>
-          </View>
-        );
-      case 'departureDateTime':
-        return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TextInput
-                label="Date de départ"
-                value={format(formDepartureDate, 'dd/MM/yyyy')}
-                onFocus={() => openPicker('departureDate')}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.rowItem}>
-              <TextInput
-                label="Heure de départ"
-                value={getTimeFromDate(new Date(formDepartureTime))}
-                onFocus={() => openPicker('departureTime')}
-                style={styles.input}
-              />
-            </View>
-          </View>
-        );
-      case 'nights':
-        return (
-          <TextInput
-            label="Nombre de nuits"
-            value={formState.nights ? formState.nights.toString() : '0'}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, nights: parseInt(text, 10) || 0 }))}
-            style={styles.input}
-          />
-        );
-      case 'price':
-        return (
-          <TextInput
-            label="Prix"
-            value={formState.price ? formState.price.toString() : '0'}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, price: text }))}
-            style={styles.input}
-          />
-        );
-      case 'notes':
-        return (
-          <TextInput
-            label="Notes"
-            value={formState.notes}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
-            style={[styles.input, styles.notesInput]}
-          />
-        );
-
-      default:
-        return null;
+  const handleFileUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({});
+      if (result) {
+        const { uri, name, mimeType } = result.assets[0];
+        const newFile = {
+          uri,
+          name,
+          type: mimeType || 'application/octet-stream',
+        };
+  
+        const formData = new FormData();
+        formData.append('documents', {
+          uri: newFile.uri,
+          name: newFile.name,
+          type: newFile.type,
+        } as any);
+  
+        const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`, {
+          method: 'PATCH',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+  
+        if (response.ok) {
+          const updatedAccommodation = await response.json();
+          setFiles(updatedAccommodation.documents);
+          Alert.alert('Succès', 'Le fichier a été ajouté avec succès.');
+        } else {
+          Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ajout du fichier.');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de sélectionner un fichier.');
+      console.error(error);
     }
   };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents/${fileId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const updatedAccommodation = await response.json();
+        setFiles(updatedAccommodation.documents);
+        Alert.alert('Succès', 'Le fichier a été supprimé avec succès.');
+      } else {
+        Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du fichier.');
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du fichier.');
+      console.error(error);
+    }
+  }
+  
+  useEffect(() => {
+    console.log('useEffect called');
+    if (accommodation && accommodation.documents) {
+      setFiles(accommodation.documents);
+    }
+  }, [accommodation]);
+
+  const renderScene = SceneMap({
+    infos: () => <InfosAccommodationTab formState={formState} setFormState={setFormState} openPicker={openPicker} styles={styles} />,
+    files: () => <FilesTab files={files} handleFileUpload={handleFileUpload} handleDeleteFile={handleDeleteFile} />,
+  });
 
   return (
     <KeyboardAvoidingView
@@ -513,24 +407,12 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
             style={styles.thumbnail}
           />
         </TouchableOpacity>
-        <Button mode="contained" onPress={pickDocument}>Sélectionner un fichier</Button>
-
       </View>
-
-      <SectionList
-        sections={[
-          { title: 'Inforcxmations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
-          { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
-          { title: 'Dates de séjour', data: ['arrivalDateTime', 'departureDateTime', 'nights'] },
-          { title: 'Autres informations', data: ['price', 'notes'] },
-        ]}
-        renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionTitle}>{title}</Text>
-        )}
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        onIndexChange={setIndex}
+        initialLayout={{ width: 0, height: 0 }}
       />
       {showPicker.isVisible && (
         <DateTimePicker
