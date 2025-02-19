@@ -6,9 +6,6 @@ import { openInGoogleMaps } from '../utils/utils';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 const GeneralInfo = ({ step, navigation, fetchStep }) => {
-  const formattedArrivalDateTime = step.arrivalDateTime ? formatDateJJMMAA(step.arrivalDateTime) : 'N/A';
-  const formattedDepartureDateTime = step.departureDateTime ? formatDateJJMMAA(step.departureDateTime) : 'N/A';
-
   return (
     <ScrollView style={styles.tabContent}>
       <Card style={styles.card}>
@@ -17,11 +14,29 @@ const GeneralInfo = ({ step, navigation, fetchStep }) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
-              <Text style={styles.itemDateTime}>{formattedArrivalDateTime}</Text>
+              <Text style={styles.itemDateTime}>
+                {new Date(step.arrivalDateTime).toLocaleString('fr-FR', {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'UTC'
+                })}
+              </Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
-              <Text style={styles.itemDateTime}>{formattedDepartureDateTime}</Text>
+              <Text style={styles.itemDateTime}>
+              {new Date(step.departureDateTime).toLocaleString('fr-FR', {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'UTC'
+                })}
+              </Text>
             </View>
           </View>
         </Card.Content>
