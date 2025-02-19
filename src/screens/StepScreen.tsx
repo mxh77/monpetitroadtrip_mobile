@@ -1,22 +1,15 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
-import { Button, Card } from 'react-native-paper';
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Step } from '../../types';
-import { openInGoogleMaps, openWebsite } from '../utils/utils';
-import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import { TabView, SceneMap } from 'react-native-tab-view';
 import Geocoder from 'react-native-geocoding';
 import Constants from 'expo-constants';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
-import { formatDateTimeUTC2Digits, formatDateJJMMAA } from '../utils/dateUtils';
-import { TriangleCornerTopRight } from '../components/shapes';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import Timetable from 'react-native-timetable';
 import GeneralInfo from '../components/GeneralInfo';
 import Accommodations from '../components/Accommodations';
 import Activities from '../components/Activities';
-import Planning from '../components/Planning';
 
 type Props = StackScreenProps<RootStackParamList, 'Step'>;
 
@@ -43,7 +36,7 @@ export default function StepScreen({ route, navigation }: Props) {
     const [index, setIndex] = useState(0); // État pour suivre l'onglet actif
     const [routes, setRoutes] = useState([
         { key: 'infos', title: 'Infos' },
-       // { key: 'planning', title: 'Planning' },
+        // { key: 'planning', title: 'Planning' },
     ]);
 
     useEffect(() => {
