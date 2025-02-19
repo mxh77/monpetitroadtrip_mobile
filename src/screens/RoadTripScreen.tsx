@@ -25,8 +25,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     try {
       const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`);
       const data = await response.json();
-      console.log('Données de l\'API:', data);
-      //console.log('Données de l\'API:', data);
+      // console.log('Données de l\'API:', data);
 
       // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
       const { alerts, errorMessages } = checkDateConsistency(data);
@@ -249,13 +248,13 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     </View>
   );
 
-  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+  // console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
   const RoadTripPlanning = () => {
-    console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+    // console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
     const events = sortedSteps.flatMap(step => {
-      console.log('Processing step:', step);
+      // console.log('Processing step:', step);
 
       if (step.type === 'Stop') {
         const stopEvent = {
