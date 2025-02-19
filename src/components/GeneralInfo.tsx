@@ -1,41 +1,44 @@
 import React from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { formatDateTimeUTC2Digits } from '../utils/dateUtils';
+import { Card, Button } from 'react-native-paper';
+import { formatDateJJMMAA } from '../utils/dateUtils';
+import { openInGoogleMaps } from '../utils/utils';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 
 const GeneralInfo = ({ step, navigation, fetchStep }) => {
-  const formattedArrivalDateTime = step.arrivalDateTime ? formatDateTimeUTC2Digits(step.arrivalDateTime) : 'N/A';
-  const formattedDepartureDateTime = step.departureDateTime ? formatDateTimeUTC2Digits(step.departureDateTime) : 'N/A';
+  const formattedArrivalDateTime = step.arrivalDateTime ? formatDateJJMMAA(step.arrivalDateTime) : 'N/A';
+  const formattedDepartureDateTime = step.departureDateTime ? formatDateJJMMAA(step.departureDateTime) : 'N/A';
 
   return (
     <ScrollView style={styles.tabContent}>
-      <View style={styles.generalInfoContainer}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Nom de l'étape :</Text>
-          <Text style={styles.infoValue}>{step.name}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Adresse :</Text>
-          <Text style={styles.infoValue}>{step.address}</Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.navigate('EditStepInfo', { step: step, refresh: fetchStep })}>
-          <Image
-            source={step.thumbnail ? { uri: step.thumbnail.url } : require('../../assets/default-thumbnail.png')}
-            style={styles.thumbnail}
-          />
-        </TouchableOpacity>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Date et heure d'arrivée :</Text>
-          <Text style={styles.infoValue}>{formattedArrivalDateTime}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Date et heure de départ :</Text>
-          <Text style={styles.infoValue}>{formattedDepartureDateTime}</Text>
-        </View>
-        <View style={styles.infoRow}>
+      <Card style={styles.card}>
+        <Card.Title titleStyle={styles.cardTitle} title={step.name} />
+        <Card.Content>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
+              <Text style={styles.itemDateTime}>{formattedArrivalDateTime}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
+              <Text style={styles.itemDateTime}>{formattedDepartureDateTime}</Text>
+            </View>
+          </View>
+        </Card.Content>
+        <Card.Content>
+          <TouchableOpacity onPress={() => navigation.navigate('EditStepInfo', { step: step, refresh: fetchStep })}>
+            <Image
+              source={step.thumbnail ? { uri: step.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+              style={styles.thumbnail}
+            />
+          </TouchableOpacity>
+          <Text style={styles.infoText}>{step.address}</Text>
+        </Card.Content>
+        <Card.Content>
           <Text style={styles.infoLabel}>Notes :</Text>
           <Text style={styles.infoValue}>{step.notes}</Text>
-        </View>
-      </View>
+        </Card.Content>
+      </Card>
     </ScrollView>
   );
 };
@@ -44,25 +47,34 @@ const styles = StyleSheet.create({
   tabContent: {
     padding: 16,
   },
-  generalInfoContainer: {
+  card: {
     marginBottom: 16,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  infoLabel: {
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  infoValue: {
-    flex: 1,
-    textAlign: 'right',
+  itemDateTime: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  infoText: {
+    marginBottom: 8,
   },
   thumbnail: {
     width: '100%',
     height: 200,
     marginBottom: 16,
+  },
+  mapButton: {
+    marginTop: 8,
+  },
+  infoLabel: {
+    fontWeight: 'bold',
+    marginTop: 16,
+  },
+  infoValue: {
+    marginTop: 8,
   },
 });
 

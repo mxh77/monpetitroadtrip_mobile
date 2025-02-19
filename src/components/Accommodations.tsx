@@ -4,6 +4,7 @@ import { Card, Button } from 'react-native-paper';
 import { formatDateJJMMAA } from '../utils/dateUtils';
 import { openInGoogleMaps, openWebsite } from '../utils/utils';
 import { TriangleCornerTopRight } from '../components/shapes';
+import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 
 const Accommodations = ({ step, navigation, fetchStep }) => (
   <View style={{ flex: 1 }}>
@@ -12,7 +13,34 @@ const Accommodations = ({ step, navigation, fetchStep }) => (
         <Card key={index} style={styles.card}>
           <Card.Title titleStyle={styles.cardTitle} title={accommodation.name} />
           <Card.Content>
-            <Text style={styles.infoText}>Du {formatDateJJMMAA(accommodation.arrivalDateTime)} au {formatDateJJMMAA(accommodation.departureDateTime)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
+                <Text style={styles.itemDateTime}>
+                  {new Date(accommodation.arrivalDateTime).toLocaleString('fr-FR', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'UTC'
+                  })}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
+                <Text style={styles.itemDateTime}>
+                  {new Date(accommodation.departureDateTime).toLocaleString('fr-FR', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'UTC'
+                  })}
+                </Text>
+              </View>
+            </View>
           </Card.Content>
           <Card.Content>
             <TouchableOpacity onPress={() => navigation.navigate('EditAccommodation', { step: null, accommodation, refresh: fetchStep })}>
@@ -60,6 +88,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  itemDateTime: {
+    fontSize: 14,
+    color: 'gray',
   },
   infoText: {
     marginBottom: 8,
