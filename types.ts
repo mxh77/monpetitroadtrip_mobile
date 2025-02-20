@@ -14,6 +14,8 @@ export interface Step {
   thumbnail?: File;
   latitude?: number;
   longitude?: number;
+  travelTimePreviousStep?: number;
+  distancePreviousStep?: number;
   accommodations?: Accommodation[];
   activities?: Activity[];
 }

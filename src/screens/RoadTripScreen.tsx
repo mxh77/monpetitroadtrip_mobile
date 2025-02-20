@@ -8,6 +8,7 @@ import { FAB } from 'react-native-paper'; // Importer le bouton flottant
 import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swipeable de react-native-gesture-handler
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
 import Timetable from '../components/timetable/src'; // Importer Timetable
+import rvIcon from '../../assets/icones/RV/rv_32.png';
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
@@ -44,6 +45,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           arrivalDateTime: step.arrivalDateTime,
           departureDateTime: step.departureDateTime,
           thumbnail: step.thumbnail, // Ajouter la propriété thumbnail
+          travelTimePreviousStep: step.travelTimePreviousStep,
+          distancePreviousStep: step.distancePreviousStep,
+          travelTimeNote: step.travelTimeNote,
           accommodations: step.accommodations || [],
           activities: step.activities || [],
         })),
@@ -181,62 +185,94 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     activities: step.activities || [],
   }));
 
+  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+
+  const getTravelInfoBackgroundColor = (note) => {
+    switch (note) {
+      case 'ERROR':
+        return '#ffcccc'; // Rouge clair
+      case 'WARNING':
+        return '#fff3cd'; // Jaune clair
+      case 'OK':
+        return '#d4edda'; // Vert clair
+      default:
+        return '#f0f0f0'; // Gris clair par défaut
+    }
+  };
+
   const StepList = () => (
     <View style={styles.container}>
       <Text style={styles.title}>{roadtrip.name}</Text>
       <FlatList
         data={sortedSteps}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-            <TouchableOpacity
-              style={styles.item}
-              onPress={() => handleStepPress(item)}
-            >
-              <View style={styles.itemHeader}>
-                <Icon
-                  name={item.type === 'Stage' ? 'bed' : 'flag'}
-                  size={20}
-                  color="#007BFF"
-                  style={styles.itemIcon}
+        renderItem={({ item, index }) => (
+          <>
+            {index > 0 && (
+              <View style={styles.travelInfoContainer}>
+                <View style={styles.travelInfoLine} />
+                <Image source={rvIcon} style={styles.travelIcon} />
+              <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
+                  <Text style={styles.travelText}>
+                    Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
+                  </Text>
+                  <Text style={styles.travelText}>
+                    Distance : {sortedSteps[index].distancePreviousStep}km
+                  </Text>
+                </View>
+                <View style={styles.travelInfoLine} />
+              </View>
+            )}
+            <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+              <TouchableOpacity
+                style={styles.item}
+                onPress={() => handleStepPress(item)}
+              >
+                <View style={styles.itemHeader}>
+                  <Icon
+                    name={item.type === 'Stage' ? 'bed' : 'flag'}
+                    size={20}
+                    color="#007BFF"
+                    style={styles.itemIcon}
+                  />
+                  <Text style={styles.itemTitle}>{item.name}</Text>
+                </View>
+                <Image
+                  source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+                  style={styles.thumbnail}
                 />
-                <Text style={styles.itemTitle}>{item.name}</Text>
-              </View>
-              <Image
-                source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
-                style={styles.thumbnail}
-              />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
-                  <Text style={styles.itemDateTime}>
-                    {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'UTC'
-                    })}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
+                    <Text style={styles.itemDateTime}>
+                      {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'UTC'
+                      })}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 
-                  <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
-                  <Text style={styles.itemDateTime}>
-                    {new Date(item.departureDateTime).toLocaleString('fr-FR', {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'UTC'
-                    })}
-                  </Text>
+                    <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
+                    <Text style={styles.itemDateTime}>
+                      {new Date(item.departureDateTime).toLocaleString('fr-FR', {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'UTC'
+                      })}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          </Swipeable>
+              </TouchableOpacity>
+            </Swipeable>
+          </>
         )}
       />
       <FAB
@@ -410,5 +446,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 60,
     height: '80%',
+  },
+  travelInfoContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  travelInfo: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  travelInfoLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: 'gray',
+  },
+  travelIcon: {
+    marginVertical: 5,
+  },
+  travelText: {
+    fontSize: 14,
+    color: 'gray',
   },
 });
