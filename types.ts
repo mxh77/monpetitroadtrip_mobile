@@ -16,6 +16,7 @@ export interface Step {
   longitude?: number;
   travelTimePreviousStep?: number;
   distancePreviousStep?: number;
+  travelTimeNote?: string;
   accommodations?: Accommodation[];
   activities?: Activity[];
 }
