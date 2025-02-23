@@ -31,7 +31,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
 
     const googlePlacesRef = useRef(null);
 
-    
+
     const openPicker = (type: string) => {
         let date;
         switch (type) {
@@ -166,11 +166,8 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                 return (
                     <TextInput
                         label="Nom de l'hébergement"
-                        value={nameInput}
-                        onChangeText={(text) =>updateFormState((prevState) => {
-                            console.log('Updating name...');
-                            return { ...prevState, name: nameInput };
-                        })} // Envoie bien `newState`
+                        value={formState.name}
+                        onChangeText={(text) => updateFormState({ name: text })}
                         style={styles.input}
                     />
                 );
@@ -233,7 +230,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Site Web"
                         value={formState.website}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, website: text }))}
+                        onChangeText={(text) => updateFormState({ website: text })}
                         style={styles.input}
                     />
                 );
@@ -242,7 +239,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Téléphone"
                         value={formState.phone}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, phone: text }))}
+                        onChangeText={(text) => updateFormState({ phone: text })}
                         style={styles.input}
                     />
                 );
@@ -251,7 +248,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Mail"
                         value={formState.email}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, email: text }))}
+                        onChangeText={(text) => updateFormState({email: text })}
                         style={styles.input}
                     />
                 );
@@ -260,7 +257,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="N° Réservation"
                         value={formState.reservationNumber}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, reservationNumber: text }))}
+                        onChangeText={(text) => updateFormState({reservationNumber: text })}
                         style={styles.input}
                     />
                 );
@@ -320,7 +317,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Nombre de nuits"
                         value={formState.nights ? formState.nights.toString() : '0'}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, nights: parseInt(text, 10) || 0 }))}
+                        onChangeText={(text) => updateFormState({nights: text })}
                         style={styles.input}
                     />
                 );
@@ -329,7 +326,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Prix"
                         value={formState.price ? formState.price.toString() : '0'}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, price: text }))}
+                        onChangeText={(text) => updateFormState({price: text })}
                         style={styles.input}
                     />
                 );
@@ -338,7 +335,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Notes"
                         value={formState.notes}
-                        onChangeText={(text) => updateFormState((prevState) => ({ ...prevState, notes: text }))}
+                        onChangeText={(text) => updateFormState({notes: text })}
                         style={[styles.input, styles.notesInput]}
                     />
                 );
