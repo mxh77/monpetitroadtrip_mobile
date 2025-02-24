@@ -13,6 +13,8 @@
     "deploy:all": "node deploy.js"
   },
   "dependencies": {
+    "@config-plugins/react-native-blob-util": "^9.0.0",
+    "@config-plugins/react-native-pdf": "^9.0.0",
     "@expo/config-plugins": "~9.0.0",
     "@expo/prebuild-config": "~8.0.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
@@ -35,13 +37,16 @@
     "expo-constants": "^17.0.3",
     "expo-dev-client": "~5.0.12",
     "expo-document-picker": "~13.0.3",
+    "expo-file-system": "^18.0.11",
     "expo-image-picker": "~16.0.6",
     "expo-status-bar": "~2.0.1",
+    "expo-web-browser": "~14.0.2",
     "metro": "^0.81.0",
     "metro-config": "^0.81.0",
     "metro-resolver": "^0.81.0",
     "react": "^18.3.1",
     "react-native": "0.76.7",
+    "react-native-blob-util": "^0.21.2",
     "react-native-calendar-timetable": "^1.0.7",
     "react-native-config": "^1.5.3",
     "react-native-dotenv": "^3.4.11",
@@ -56,6 +61,7 @@
     "react-native-pager-view": "6.5.1",
     "react-native-paper": "^5.12.5",
     "react-native-paper-dates": "^0.22.28",
+    "react-native-pdf": "^6.7.7",
     "react-native-radio-buttons-group": "^3.1.0",
     "react-native-reanimated": "^3.16.7",
     "react-native-safe-area-context": "4.12.0",
@@ -65,6 +71,7 @@
     "react-native-tab-view": "^4.0.5",
     "react-native-timeline-flatlist": "^0.8.0",
     "react-native-timetable": "file:src/components/react-native-timetable-1.0.0.tgz",
+    "react-native-webview": "^13.13.2",
     "uuid": "^11.0.5"
   },
   "devDependencies": {

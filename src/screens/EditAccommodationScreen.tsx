@@ -224,37 +224,6 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: "#f9f9f9",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  rowItem: {
-    flex: 1,
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    marginBottom: 10,
-    padding: 5,
-    backgroundColor: '#fff',
-  },
-  notesInput: {
-    height: 100,
-  },
-  clearIcon: {
-    marginRight: 10,
-    marginTop: 10,
-  },
   thumbnailContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -269,13 +238,5 @@ const styles = StyleSheet.create({
     color: '#007BFF',
     textDecorationLine: 'underline',
   },
-  filesContainer: {
-    marginVertical: 20,
-  },
-  fileItem: {
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
+
 });

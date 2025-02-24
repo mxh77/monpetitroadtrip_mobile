@@ -1,35 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
-import { Button } from 'react-native-paper';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
+import { FAB } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { TriangleCornerTopRight } from '../components/shapes';
 import * as DocumentPicker from 'expo-document-picker';
-import { FAB } from 'react-native-paper'; // Importer le bouton flottant
 
 dayjs.extend(utc);
 
 const FilesTab = ({ accommodation, files, setFiles }) => {
     const [fileToDelete, setFileToDelete] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (accommodation?.documents && files !== accommodation.documents) {
+        if (accommodation && accommodation.documents) {
             setFiles(accommodation.documents);
         }
-    }, [accommodation, files]);
+    }, [accommodation]);
 
     const fetchFiles = async () => {
         try {
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}`);
+            setLoading(true);
+            console.log('URL :', `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`);
+            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`);
             if (response.ok) {
                 const updatedAccommodation = await response.json();
-                setFiles(updatedAccommodation.documents);
+                console.log('Fichiers récupérés:', updatedAccommodation);
+                setFiles(updatedAccommodation);
             } else {
-                Alert.alert('Erreur', 'Impossible de récupérer les fichiers.');
+                Alert.alert('Erreur', 'Une erreur est survenue lors de la récupération des fichiers.');
             }
         } catch (error) {
-            console.error('Erreur lors du rafraîchissement des fichiers:', error);
+            console.error('Erreur lors de la récupération des fichiers:', error);
+            Alert.alert('Erreur', 'Une erreur est survenue lors de la récupération des fichiers.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -61,12 +66,13 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
 
     const handleDeleteFile = async (fileId) => {
         try {
+            setLoading(true);
             const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents/${fileId}`, {
                 method: 'DELETE',
             });
 
             if (response.ok) {
-                fetchFiles(); // Rafraîchir la liste depuis l'API
+                fetchFiles();
                 Alert.alert('Succès', 'Le fichier a été supprimé avec succès.');
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du fichier.');
@@ -74,6 +80,8 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
         } catch (error) {
             console.error('Erreur lors de la suppression du fichier:', error);
             Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du fichier.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -83,6 +91,7 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
 
     const handleFileUpload = async () => {
         try {
+            console.log('handleFileUpload');
             const result = await DocumentPicker.getDocumentAsync({});
 
             if (result.canceled) return; // Vérifie si l'utilisateur a annulé
@@ -109,6 +118,8 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
                 type: newFile.type,
             } as any);
 
+            setLoading(true);
+            console.log('formData:', formData);
             const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`, {
                 method: 'PATCH',
                 body: formData,
@@ -118,7 +129,10 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
             });
 
             if (response.ok) {
-                fetchFiles(); // Rafraîchir la liste après l'upload
+                const data = await response.json();
+                console.log('Données de l\'API:', data);
+
+                fetchFiles();
                 Alert.alert('Succès', 'Le fichier a été ajouté avec succès.');
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ajout du fichier.');
@@ -126,6 +140,8 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
         } catch (error) {
             Alert.alert('Erreur', 'Impossible de sélectionner un fichier.');
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -135,19 +151,26 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
             onLongPress={() => handleLongPress(item._id)}
             onPress={() => handleOpenFile(item.url)}
         >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                <Text>{item.name}</Text>
-                {fileToDelete === item._id && (
-                    <TouchableOpacity onPress={() => handleDelete(item._id)}>
-                        <Icon name="trash" size={20} color="red" />
-                    </TouchableOpacity>
-                )}
+            <View style={styles.fileIconContainer}>
+                <Icon name="file" size={40} color="#007BFF" />
             </View>
+            <Text style={styles.fileName}>{item.name}</Text>
+            {fileToDelete === item._id && (
+                <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.deleteIcon}>
+                    <Icon name="trash" size={30} color="red" />
+                </TouchableOpacity>
+            )}
         </TouchableOpacity>
     );
 
+    console.log('files:', files);
     return (
         <View style={styles.container}>
+            {loading && (
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color="#007BFF" />
+                </View>
+            )}
             <FlatList
                 data={files}
                 keyExtractor={(item) => item._id}
@@ -169,18 +192,38 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
+        backgroundColor: '#f9f9f9',
     },
     list: {
         paddingBottom: 20,
     },
     fileItem: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 5,
-        margin: 5,
-        justifyContent: 'space-between',
+        padding: 15,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        margin: 10,
+        justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 5,
+        position: 'relative',
+        width: '45%',
+    },
+    fileIconContainer: {
+        marginBottom: 10,
+    },
+    fileName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    deleteIcon: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
     },
     fab: {
         position: 'absolute',
@@ -188,6 +231,13 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: '#007BFF',
+    },
+    loaderContainer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
     },
 });
 
