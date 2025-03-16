@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
-import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import {  formatInTimeZone } from 'date-fns-tz';
 import { SectionList } from 'react-native';
-import { getTimeFromDate } from '../utils/dateUtils';
-import { Accommodation } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { TouchableOpacity } from 'react-native-gesture-handler';

@@ -9,6 +9,7 @@ import { formatDateTimeUTC2Digits, formatDateJJMMAA, getTimeFromDate, formatTime
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { format, parseISO, set } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -405,31 +406,44 @@ export default function EditActivityScreen({ route, navigation }: Props) {
         );
       case 'confirmationDateTime':
         return (
-          <TextInput
-            label="Date de confirmation"
-            value={formConfirmationDate ? format(formConfirmationDate, 'dd/MM/yyyy') : ''}
-            onFocus={() => openPicker('confirmationDate')}
-            style={styles.input}
-          />
+          <TouchableOpacity onPress={() => openPicker('confirmationDate')}>
+            <View pointerEvents="none">
+              <TextInput
+                label="Date de confirmation"
+                value={formConfirmationDate ? format(formConfirmationDate, 'dd/MM/yyyy') : ''}
+                style={styles.input}
+                editable={false} // Rend le champ non éditable
+              />
+            </View>
+          </TouchableOpacity>
         );
       case 'startDateTime':
         return (
           <View style={styles.rowContainer}>
             <View style={styles.rowItem}>
-              <TextInput
-                label="Date de début"
-                value={format(formStartDate, 'dd/MM/yyyy')}
-                onFocus={() => openPicker('startDate')}
-                style={styles.input}
-              />
+              <TouchableOpacity onPress={() => openPicker('startDate')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Date de début"
+                    value={formStartDate ? formatInTimeZone(formStartDate, 'UTC', 'dd/MM/yyyy') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
             </View>
             <View style={styles.rowItem}>
-              <TextInput
-                label="Heure de début"
-                value={getTimeFromDate(new Date(formStartTime))}
-                onFocus={() => openPicker('startTime')}
-                style={styles.input}
-              />
+              <TouchableOpacity onPress={() => openPicker('startTime')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Heure de début"
+                    value={formStartTime ? formatInTimeZone(formStartTime, 'UTC', 'HH:mm') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
+
             </View>
           </View>
         );
@@ -437,20 +451,28 @@ export default function EditActivityScreen({ route, navigation }: Props) {
         return (
           <View style={styles.rowContainer}>
             <View style={styles.rowItem}>
-              <TextInput
-                label="Date de fin"
-                value={format(formEndDate, 'dd/MM/yyyy')}
-                onFocus={() => openPicker('endDate')}
-                style={styles.input}
-              />
+              <TouchableOpacity onPress={() => openPicker('endDate')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Date de fin"
+                    value={formEndDate ? formatInTimeZone(formEndDate, 'UTC', 'dd/MM/yyyy') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
             </View>
             <View style={styles.rowItem}>
-              <TextInput
-                label="Heure de fin"
-                value={getTimeFromDate(new Date(formEndTime))}
-                onFocus={() => openPicker('endTime')}
-                style={styles.input}
-              />
+              <TouchableOpacity onPress={() => openPicker('endTime')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Heure de fin"
+                    value={formEndTime ? formatInTimeZone(formEndTime, 'UTC', 'HH:mm') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
         );
