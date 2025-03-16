@@ -117,6 +117,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
+            setIsLoading(true); // Start loading
             const url = `https://mon-petit-roadtrip.vercel.app/activities/${activity._id}`;
 
             try {
@@ -138,6 +139,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
             } catch (error) {
               console.error('Erreur lors de la suppression:', error);
               Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression.');
+            } finally {
+              setIsLoading(false); // End loading
             }
           },
         },
