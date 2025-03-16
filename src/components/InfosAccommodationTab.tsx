@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
-const InfosAccommodationTab = ({ formState, updateFormState }) => {
+const InfosAccommodationTab = ({ formState, updateFormState ,step}) => {
     // console.log('Début composant InfosAccommodationTab');
 
     const [nameInput, setNameInput] = useState(formState.name || '');
@@ -24,20 +24,20 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
     const [inputEnabled, setInputEnabled] = useState(true);
 
     const [formConfirmationDate, setFormConfirmationDate] = useState(
-        formState.confirmationDateTime ? new Date(formState.confirmationDateTime) : new Date()
+        formState.confirmationDateTime ? new Date(formState.confirmationDateTime) : null
       );
 
     const [formArrivalDate, setFormArrivalDate] = useState(
-        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : new Date()
+        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : null
       );
       const [formArrivalTime, setFormArrivalTime] = useState(
-        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : new Date()
+        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) :  null
       );
       const [formDepartureDate, setFormDepartureDate] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) : new Date()
+        formState.departureDateTime ? new Date(formState.departureDateTime) :  null
       );
       const [formDepartureTime, setFormDepartureTime] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) : new Date()
+        formState.departureDateTime ? new Date(formState.departureDateTime) :  null
       );
       
 
@@ -47,19 +47,19 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
         let date;
         switch (type) {
             case 'confirmationDate':
-                date = formConfirmationDate;
+                date = formConfirmationDate || new Date();
                 break;
             case 'arrivalDate':
-                date = formArrivalDate;
+                date = formArrivalDate || parseISO(step.arrivalDateTime);
                 break;
             case 'arrivalTime':
-                date = formArrivalTime;
+                date = formArrivalTime || parseISO(step.arrivalDateTime);
                 break;
             case 'departureDate':
-                date = formDepartureDate;
+                date = formDepartureDate || parseISO(step.arrivalDateTime);
                 break;
             case 'departureTime':
-                date = formDepartureTime;
+                date = formDepartureTime || parseISO(step.arrivalDateTime);
                 break;
             default:
                 date = new Date();

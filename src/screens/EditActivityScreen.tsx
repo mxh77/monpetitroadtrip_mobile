@@ -44,11 +44,11 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     thumbnail: activity?.thumbnail || null,
   });
 
-  const [formConfirmationDate, setFormConfirmationDate] = useState(new Date());
-  const [formStartDate, setFormStartDate] = useState(new Date());
-  const [formStartTime, setFormStartTime] = useState(new Date());
-  const [formEndDate, setFormEndDate] = useState(new Date());
-  const [formEndTime, setFormEndTime] = useState(new Date());
+  const [formConfirmationDate, setFormConfirmationDate] = useState<Date | null>(null);
+  const [formStartDate, setFormStartDate] = useState<Date | null>(null);
+  const [formStartTime, setFormStartTime] = useState<Date | null>(null);
+  const [formEndDate, setFormEndDate] = useState<Date | null>(null);
+  const [formEndTime, setFormEndTime] = useState<Date | null>(null);
 
   const googlePlacesRef = useRef(null);
 
@@ -122,7 +122,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
 
     Alert.alert(
       'Confirmation',
-      'Êtes-vous sûr de vouloir supprimer cet hébergement ?',
+      'Êtes-vous sûr de vouloir supprimer cette activité ?',
       [
         {
           text: 'Annuler',
@@ -140,8 +140,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
               });
 
               if (response.ok) {
-                console.log('Succès', 'L\'hébergement a été supprimé avec succès.');
-                Alert.alert('Succès', 'L\'hébergement a été supprimé avec succès.');
+                console.log('Succès', 'L\'activité a été supprimée avec succès.');
+                Alert.alert('Succès', 'L\'activité a été supprimée avec succès.');
                 if (refresh) {
                   refresh();
                 }
@@ -233,45 +233,21 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     let date;
     switch (type) {
       case 'confirmationDate':
-        console.log('formConfirmationDate:', formConfirmationDate);
-        date = new Date(Date.UTC(
-          formConfirmationDate.getUTCFullYear(),
-          formConfirmationDate.getUTCMonth(),
-          formConfirmationDate.getUTCDate()
-        ));
-        break;
+        case 'confirmationDate':
+          date = formConfirmationDate || new Date();
+          break;
       case 'startDate':
         console.log('formStartDate:', formStartDate);
-        date = new Date(Date.UTC(
-          formStartDate.getUTCFullYear(),
-          formStartDate.getUTCMonth(),
-          formStartDate.getUTCDate()
-        ));
+        date = formStartDate || parseISO(step.arrivalDateTime);
         break;
       case 'startTime':
-        date = new Date(Date.UTC(
-          formStartTime.getUTCFullYear(),
-          formStartTime.getUTCMonth(),
-          formStartTime.getUTCDate(),
-          formStartTime.getUTCHours(),
-          formStartTime.getUTCMinutes()
-        ));
+        date = formStartTime || parseISO(step.arrivalDateTime);
         break;
       case 'endDate':
-        date = new Date(Date.UTC(
-          formEndDate.getUTCFullYear(),
-          formEndDate.getUTCMonth(),
-          formEndDate.getUTCDate()
-        ));
+        date = formEndDate || parseISO(step.arrivalDateTime);
         break;
       case 'endTime':
-        date = new Date(Date.UTC(
-          formEndTime.getUTCFullYear(),
-          formEndTime.getUTCMonth(),
-          formEndTime.getUTCDate(),
-          formEndTime.getUTCHours(),
-          formEndTime.getUTCMinutes()
-        ));
+        date = formEndTime || parseISO(step.arrivalDateTime);
         break;
       default:
         date = new Date();

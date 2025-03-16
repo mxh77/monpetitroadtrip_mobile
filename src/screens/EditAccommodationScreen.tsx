@@ -192,7 +192,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const renderScene = ({ route }) => {
     switch (route.key) {
       case 'infos':
-        return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} />;
+        return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
         return <FilesTab accommodation={accommodation} files={files} setFiles={setFiles} />;
       default:
