@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { SectionList } from 'react-native';
 import { getTimeFromDate } from '../utils/dateUtils';
 import { Accommodation } from '../../types';
@@ -14,7 +15,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 const InfosAccommodationTab = ({ formState, updateFormState }) => {
-    console.log('Début composant InfosAccommodationTab');
+    // console.log('Début composant InfosAccommodationTab');
 
     const [nameInput, setNameInput] = useState(formState.name || '');
     const [addressInput, setAddressInput] = useState(formState.address || '');
@@ -22,62 +23,45 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
     const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
     const [pickerDate, setPickerDate] = useState(new Date());
     const [tempDate, setTempDate] = useState(new Date());
+    const [inputEnabled, setInputEnabled] = useState(true);
 
-    const [confirmationDate, setConfirmationDate] = useState(new Date(formState.confirmationDateTime));  // Date sans heure
-    const [arrivalDate, setArrivalDate] = useState(new Date(formState.arrivalDateTime));  // Date sans heure
-    const [arrivalTime, setArrivalTime] = useState(new Date(formState.arrivalDateTime));  // Heure sans date
-    const [departureDate, setDepartureDate] = useState(new Date(formState.departureDateTime));  // Date sans heure
-    const [departureTime, setDepartureTime] = useState(new Date(formState.departureDateTime));  // Heure sans date
+    const [formConfirmationDate, setFormConfirmationDate] = useState(
+        formState.confirmationDateTime ? new Date(formState.confirmationDateTime) : new Date()
+      );
+
+    const [formArrivalDate, setFormArrivalDate] = useState(
+        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : new Date()
+      );
+      const [formArrivalTime, setFormArrivalTime] = useState(
+        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : new Date()
+      );
+      const [formDepartureDate, setFormDepartureDate] = useState(
+        formState.departureDateTime ? new Date(formState.departureDateTime) : new Date()
+      );
+      const [formDepartureTime, setFormDepartureTime] = useState(
+        formState.departureDateTime ? new Date(formState.departureDateTime) : new Date()
+      );
+      
 
     const googlePlacesRef = useRef(null);
-
 
     const openPicker = (type: string) => {
         let date;
         switch (type) {
             case 'confirmationDate':
-                console.log('confirmationDateTime:', confirmationDate);
-                date = new Date(Date.UTC(
-                    confirmationDate.getUTCFullYear(),
-                    confirmationDate.getUTCMonth(),
-                    confirmationDate.getUTCDate()
-                ));
+                date = formConfirmationDate;
                 break;
             case 'arrivalDate':
-                console.log('arrivalDate:', arrivalDate);
-                date = new Date(Date.UTC(
-                    arrivalDate.getUTCFullYear(),
-                    arrivalDate.getUTCMonth(),
-                    arrivalDate.getUTCDate()
-                ));
+                date = formArrivalDate;
                 break;
             case 'arrivalTime':
-                console.log('arrivalTime:', arrivalTime);
-                date = new Date(Date.UTC(
-                    arrivalTime.getUTCFullYear(),
-                    arrivalTime.getUTCMonth(),
-                    arrivalTime.getUTCDate(),
-                    arrivalTime.getUTCHours(),
-                    arrivalTime.getUTCMinutes()
-                ));
+                date = formArrivalTime;
                 break;
             case 'departureDate':
-                console.log('departureDate:', departureDate);
-                date = new Date(Date.UTC(
-                    departureDate.getUTCFullYear(),
-                    departureDate.getUTCMonth(),
-                    departureDate.getUTCDate()
-                ));
+                date = formDepartureDate;
                 break;
             case 'departureTime':
-                console.log('departureTime:', departureTime);
-                date = new Date(Date.UTC(
-                    departureTime.getUTCFullYear(),
-                    departureTime.getUTCMonth(),
-                    departureTime.getUTCDate(),
-                    departureTime.getUTCHours(),
-                    departureTime.getUTCMinutes()
-                ));
+                date = formDepartureTime;
                 break;
             default:
                 date = new Date();
@@ -88,75 +72,40 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
     };
 
     const handlePickerChange = (type: string, event: any, selectedDate?: Date) => {
-        console.log('handlePickerChange type:', type, 'event:', event, 'selectedDate:', selectedDate);
         if (event.type === 'dismissed') {
             setShowPicker({ type: '', isVisible: false });
             return;
         }
         setShowPicker({ type: '', isVisible: false });
         if (selectedDate) {
-            const newDate = new Date(selectedDate);
-            console.log('newDate:', newDate);
+            // Utiliser directement la date sélectionnée car elle représente déjà l'heure en UTC
+            const utcDate = selectedDate;
+            console.log('utcDate:', utcDate);
 
             if (type === 'confirmationDate') {
-                setConfirmationDate(newDate);
-                updateFormState({
-                    confirmationDateTime: selectedDate.toISOString(),
-                });
+                setFormConfirmationDate(utcDate);
+                updateFormState({ confirmationDateTime: utcDate.toISOString() });
+            } else if (type === 'arrivalDate') {
+                const updatedDate = new Date(formState.arrivalDateTime || utcDate);
+                updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+                setFormArrivalDate(updatedDate);
+                updateFormState({ arrivalDateTime: updatedDate.toISOString() });
+            } else if (type === 'arrivalTime') {
+                const updatedTime = new Date(formState.arrivalDateTime || utcDate);
+                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+                setFormArrivalTime(updatedTime);
+                updateFormState({ arrivalDateTime: updatedTime.toISOString() });
+            } else if (type === 'departureDate') {
+                const updatedDate = new Date(formState.departureDateTime || utcDate);
+                updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+                setFormDepartureDate(updatedDate);
+                updateFormState({ departureDateTime: updatedDate.toISOString() });
+            } else if (type === 'departureTime') {
+                const updatedTime = new Date(formState.departureDateTime || utcDate);
+                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+                setFormDepartureTime(updatedTime);
+                updateFormState({ departureDateTime: updatedTime.toISOString() });
             }
-            if (type === 'arrivalDate') {
-                setArrivalDate(newDate);
-                updateFormState({
-                    arrivalDateTime: new Date(Date.UTC(
-                        selectedDate.getUTCFullYear(),
-                        selectedDate.getUTCMonth(),
-                        selectedDate.getUTCDate(),
-                        arrivalTime.getUTCHours(),
-                        arrivalTime.getUTCMinutes()
-                    )).toISOString(),
-                });
-            }
-            if (type === 'arrivalTime') {
-                setArrivalTime(newDate);
-                updateFormState({
-                    arrivalDateTime: new Date(Date.UTC(
-                        arrivalDate.getUTCFullYear(),
-                        arrivalDate.getUTCMonth(),
-                        arrivalDate.getUTCDate(),
-                        selectedDate.getUTCHours(),
-                        selectedDate.getUTCMinutes()
-                    )).toISOString(),
-                });
-            }
-            if (type === 'departureDate') {
-                setDepartureDate(newDate);
-                updateFormState({
-                    departureDateTime: new Date(Date.UTC(
-                        selectedDate.getUTCFullYear(),
-                        selectedDate.getUTCMonth(),
-                        selectedDate.getUTCDate(),
-                        departureTime.getUTCHours(),
-                        departureTime.getUTCMinutes()
-                    )).toISOString(),
-                });
-            }
-            if (type === 'departureTime') {
-                setDepartureTime(newDate);
-                updateFormState({
-                    departureDateTime: new Date(Date.UTC(
-                        departureDate.getUTCFullYear(),
-                        departureDate.getUTCMonth(),
-                        departureDate.getUTCDate(),
-                        selectedDate.getUTCHours(),
-                        selectedDate.getUTCMinutes()
-                    )).toISOString(),
-                });
-            }
-
-            console.log('Date sélectionnée:', selectedDate);
-            console.log('arrivalDate:', arrivalDate);
-            console.log('arrivalTime:', arrivalTime);
-            console.log('formState.arrivalDateTime:', formState.arrivalDateTime);
         }
     };
 
@@ -248,7 +197,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Mail"
                         value={formState.email}
-                        onChangeText={(text) => updateFormState({email: text })}
+                        onChangeText={(text) => updateFormState({ email: text })}
                         style={styles.input}
                     />
                 );
@@ -257,37 +206,49 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="N° Réservation"
                         value={formState.reservationNumber}
-                        onChangeText={(text) => updateFormState({reservationNumber: text })}
+                        onChangeText={(text) => updateFormState({ reservationNumber: text })}
                         style={styles.input}
                     />
                 );
             case 'confirmationDateTime':
                 return (
-                    <TextInput
-                        label="Date de confirmation"
-                        value={confirmationDate ? format(new Date(confirmationDate), 'dd/MM/yyyy') : ''}
-                        onFocus={() => openPicker('confirmationDate')}
-                        style={styles.input}
-                    />
+                    <TouchableOpacity onPress={() => openPicker('confirmationDate')}>
+                        <View pointerEvents="none">
+                            <TextInput
+                                label="Date de confirmation"
+                                value={formState.confirmationDateTime ? format(parseISO(formState.confirmationDateTime), 'dd/MM/yyyy') : ''}
+                                style={styles.input}
+                                editable={false} // Rend le champ non éditable
+                            />
+                        </View>
+                    </TouchableOpacity>
                 );
             case 'arrivalDateTime':
                 return (
                     <View style={styles.rowContainer}>
                         <View style={styles.rowItem}>
-                            <TextInput
-                                label="Date d'arrivée"
-                                value={arrivalDate ? format(new Date(arrivalDate), 'dd/MM/yyyy') : ''}
-                                onFocus={() => openPicker('arrivalDate')}
-                                style={styles.input}
-                            />
+                            <TouchableOpacity onPress={() => openPicker('arrivalDate')}>
+                                <View pointerEvents="none">
+                                    <TextInput
+                                        label="Date d'arrivée"
+                                        value={formArrivalDate ? formatInTimeZone(formArrivalDate, 'UTC', 'dd/MM/yyyy') : ''}
+                                        style={styles.input}
+                                        editable={false} // Rend le champ non éditable
+                                    />
+                                </View>
+                            </TouchableOpacity>
                         </View>
                         <View style={styles.rowItem}>
-                            <TextInput
-                                label="Heure d'arrivée"
-                                value={arrivalTime ? arrivalTime.toISOString().substring(11, 16) : ''}
-                                onFocus={() => openPicker('arrivalTime')}
-                                style={styles.input}
-                            />
+                            <TouchableOpacity onPress={() => openPicker('arrivalTime')}>
+                                <View pointerEvents="none">
+                                    <TextInput
+                                        label="Heure d'arrivée"
+                                        value={formArrivalTime ? formatInTimeZone(formArrivalTime, 'UTC', 'HH:mm') : ''}
+                                        style={styles.input}
+                                        editable={false} // Rend le champ non éditable
+                                    />
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 );
@@ -295,20 +256,28 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                 return (
                     <View style={styles.rowContainer}>
                         <View style={styles.rowItem}>
-                            <TextInput
-                                label="Date de départ"
-                                value={departureDate ? format(new Date(departureDate), 'dd/MM/yyyy') : ''}
-                                onFocus={() => openPicker('departureDate')}
-                                style={styles.input}
-                            />
+                            <TouchableOpacity onPress={() => openPicker('departureDate')}>
+                                <View pointerEvents="none">
+                                    <TextInput
+                                        label="Date de départ"
+                                        value={formDepartureDate ? formatInTimeZone(formDepartureDate, 'UTC', 'dd/MM/yyyy') : ''}
+                                        style={styles.input}
+                                        editable={false} // Rend le champ non éditable
+                                    />
+                                </View>
+                            </TouchableOpacity>
                         </View>
                         <View style={styles.rowItem}>
-                            <TextInput
-                                label="Heure de départ"
-                                value={departureTime ? departureTime.toISOString().substring(11, 16) : ''}
-                                onFocus={() => openPicker('departureTime')}
-                                style={styles.input}
-                            />
+                            <TouchableOpacity onPress={() => openPicker('departureTime')}>
+                                <View pointerEvents="none">
+                                    <TextInput
+                                        label="Heure de départ"
+                                        value={formDepartureTime ? formatInTimeZone(formDepartureTime, 'UTC', 'HH:mm') : ''}
+                                        style={styles.input}
+                                        editable={false} // Rend le champ non éditable
+                                    />
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 );
@@ -317,7 +286,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Nombre de nuits"
                         value={formState.nights ? formState.nights.toString() : '0'}
-                        onChangeText={(text) => updateFormState({nights: text })}
+                        onChangeText={(text) => updateFormState({ nights: text })}
                         style={styles.input}
                     />
                 );
@@ -326,7 +295,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Prix"
                         value={formState.price ? formState.price.toString() : '0'}
-                        onChangeText={(text) => updateFormState({price: text })}
+                        onChangeText={(text) => updateFormState({ price: text })}
                         style={styles.input}
                     />
                 );
@@ -335,7 +304,7 @@ const InfosAccommodationTab = ({ formState, updateFormState }) => {
                     <TextInput
                         label="Notes"
                         value={formState.notes}
-                        onChangeText={(text) => updateFormState({notes: text })}
+                        onChangeText={(text) => updateFormState({ notes: text })}
                         style={[styles.input, styles.notesInput]}
                     />
                 );

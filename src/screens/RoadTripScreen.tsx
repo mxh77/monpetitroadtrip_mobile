@@ -9,6 +9,7 @@ import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swip
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
 import Timetable from '../components/timetable/src'; // Importer Timetable
 import rvIcon from '../../assets/icones/RV/rv_32.png';
+import { getMinStartDateTime } from '../utils/dateUtils';
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
@@ -212,7 +213,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
               <View style={styles.travelInfoContainer}>
                 <View style={styles.travelInfoLine} />
                 <Image source={rvIcon} style={styles.travelIcon} />
-              <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
+                <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
                   <Text style={styles.travelText}>
                     Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
                   </Text>

@@ -183,6 +183,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       setFormConfirmationDate(parseISO(formState.confirmationDateTime));
     }
     if (formState.startDateTime) {
+      console.log('Setting formStartDate and formStartTime with:', formState.startDateTime);
       setFormStartDate(parseISO(formState.startDateTime));
       setFormStartTime(parseISO(formState.startDateTime));
     }
@@ -205,6 +206,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       return;
     }
     setShowPicker({ type: '', isVisible: false });
+
+    console.log('Selected date:', selectedDate);
     if (selectedDate) {
       const newDate = new Date(selectedDate);
       if (type === 'confirmationDate') {
@@ -304,7 +307,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       case 'name':
         return (
           <TextInput
-            label="Nom de l'hébergement"
+            label="Nom de l'activité"
             value={formState.name}
             onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
             style={styles.input}
@@ -414,7 +417,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           <View style={styles.rowContainer}>
             <View style={styles.rowItem}>
               <TextInput
-                label="Date d'arrivée"
+                label="Date de début"
                 value={format(formStartDate, 'dd/MM/yyyy')}
                 onFocus={() => openPicker('startDate')}
                 style={styles.input}
@@ -422,7 +425,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
             </View>
             <View style={styles.rowItem}>
               <TextInput
-                label="Heure d'arrivée"
+                label="Heure de début"
                 value={getTimeFromDate(new Date(formStartTime))}
                 onFocus={() => openPicker('startTime')}
                 style={styles.input}
@@ -435,7 +438,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           <View style={styles.rowContainer}>
             <View style={styles.rowItem}>
               <TextInput
-                label="Date de départ"
+                label="Date de fin"
                 value={format(formEndDate, 'dd/MM/yyyy')}
                 onFocus={() => openPicker('endDate')}
                 style={styles.input}
@@ -443,7 +446,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
             </View>
             <View style={styles.rowItem}>
               <TextInput
-                label="Heure de départ"
+                label="Heure de fin"
                 value={getTimeFromDate(new Date(formEndTime))}
                 onFocus={() => openPicker('endTime')}
                 style={styles.input}
@@ -491,7 +494,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       </View>
       <SectionList
         sections={[
-          { title: 'Infodddrmations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
+          { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
           { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
           { title: 'Dates de séjour', data: ['startDateTime', 'endDateTime', 'nights'] },
           { title: 'Autres informations', data: ['price', 'notes'] },
