@@ -59,28 +59,9 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       : `https://mon-petit-roadtrip.vercel.app/roadtrips/${step.roadtripId}/steps/${step.id}/activities`;
     console.log('formState:', formState);
 
-    const payload = {
-      ...formState,
-      confirmationDateTime: formConfirmationDate.toISOString(),
-      startDateTime: new Date(Date.UTC(
-        formStartDate.getUTCFullYear(),
-        formStartDate.getUTCMonth(),
-        formStartDate.getUTCDate(),
-        formStartTime.getUTCHours(),
-        formStartTime.getUTCMinutes()
-      )).toISOString(),
-      endDateTime: new Date(Date.UTC(
-        formEndDate.getUTCFullYear(),
-        formEndDate.getUTCMonth(),
-        formEndDate.getUTCDate(),
-        formEndTime.getUTCHours(),
-        formEndTime.getUTCMinutes())
-      ).toISOString()
-    };
-
     // Préparez le formulaire multipart/form-data
     const formData = new FormData();
-    formData.append('data', JSON.stringify(payload));
+    formData.append('data', JSON.stringify(formState));
 
     if (formState.thumbnail && typeof formState.thumbnail.url === 'string') {
       formData.append('thumbnail', {
@@ -90,7 +71,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       } as any);
     }
 
-    console.log(isEditing ? 'PUT Payload :' : 'POST Payload :', payload);
+    console.log(isEditing ? 'PUT Payload :' : 'POST Payload :', formState);
     console.log(isEditing ? 'PUT Data :' : 'POST Data :', formData);
 
     try {
