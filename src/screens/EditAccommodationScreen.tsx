@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Accommodation } from '../../types';
@@ -22,6 +22,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const { step, accommodation, refresh } = route.params;
   const isEditing = !!accommodation;
   console.log('EditAccommodationScreen', step);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [thumbnail, setThumbnail] = useState(accommodation?.thumbnail ? { uri: accommodation.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
@@ -59,6 +60,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   }, []);
 
   const handleSave = async () => {
+    setIsLoading(true);
     console.log('Accommodation ID:', accommodation?._id);
     const url = isEditing
       ? `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}`
@@ -102,8 +104,10 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
 
   const handleDelete = async () => {
     if (!accommodation?._id) return;
@@ -192,7 +196,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const renderScene = ({ route }) => {
     switch (route.key) {
       case 'infos':
-                return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
+        return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
         return <FilesTab accommodation={accommodation} files={files} setFiles={setFiles} />;
       default:
@@ -205,6 +209,16 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Modal
+        transparent={true}
+        animationType="none"
+        visible={isLoading}
+        onRequestClose={() => { }}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007BFF" />
+        </View>
+      </Modal>
       <View style={styles.thumbnailContainer}>
         <TouchableOpacity onPress={pickImage}>
           <Image
@@ -237,6 +251,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#007BFF',
     textDecorationLine: 'underline',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 
 });

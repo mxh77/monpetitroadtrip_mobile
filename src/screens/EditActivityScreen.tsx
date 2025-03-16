@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image,ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Activity } from '../../types';
@@ -20,6 +20,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
   const { step, activity, refresh } = route.params;
   const isEditing = !!activity;
   console.log('Activity:', activity);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [thumbnail, setThumbnail] = useState(activity?.thumbnail ? { uri: activity.thumbnail.url } : null);
 
@@ -53,6 +54,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
   const googlePlacesRef = useRef(null);
 
   const handleSave = async () => {
+    setIsLoading(true);
     console.log('Activity ID:', activity?._id);
     const url = isEditing
       ? `https://mon-petit-roadtrip.vercel.app/activities/${activity._id}`
@@ -95,6 +97,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+    } finally {
+      setIsLoading(false); // Terminez le chargement
     }
   };
 
@@ -214,9 +218,9 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     let date;
     switch (type) {
       case 'confirmationDate':
-        case 'confirmationDate':
-          date = formConfirmationDate || new Date();
-          break;
+      case 'confirmationDate':
+        date = formConfirmationDate || new Date();
+        break;
       case 'startDate':
         console.log('formStartDate:', formStartDate);
         date = formStartDate || parseISO(step.arrivalDateTime);
@@ -463,6 +467,16 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Modal
+        transparent={true}
+        animationType="none"
+        visible={isLoading}
+        onRequestClose={() => { }}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007BFF" />
+        </View>
+      </Modal>
       <View style={styles.thumbnailContainer}>
         <TouchableOpacity onPress={pickImage}>
           <Image
@@ -551,5 +565,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#007BFF',
     textDecorationLine: 'underline',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });
