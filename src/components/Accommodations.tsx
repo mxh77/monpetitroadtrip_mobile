@@ -43,7 +43,7 @@ const Accommodations = ({ step, navigation, fetchStep }) => (
             </View>
           </Card.Content>
           <Card.Content>
-            <TouchableOpacity onPress={() => navigation.navigate('EditAccommodation', { step: null, accommodation, refresh: fetchStep })}>
+            <TouchableOpacity onPress={() => navigation.navigate('EditAccommodation', { step: step, accommodation, refresh: fetchStep })}>
               <Image
                 source={accommodation.thumbnail ? { uri: accommodation.thumbnail.url } : require('../../assets/default-thumbnail.png')}
                 style={styles.thumbnail}

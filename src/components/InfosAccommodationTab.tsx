@@ -2,19 +2,20 @@ import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
-import {  formatInTimeZone } from 'date-fns-tz';
+import {  formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { SectionList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { newDateUTC } from '../utils/dateUtils';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 const InfosAccommodationTab = ({ formState, updateFormState ,step}) => {
     // console.log('Début composant InfosAccommodationTab');
-
+console.log('step:', step);
     const [nameInput, setNameInput] = useState(formState.name || '');
     const [addressInput, setAddressInput] = useState(formState.address || '');
 
@@ -50,16 +51,17 @@ const InfosAccommodationTab = ({ formState, updateFormState ,step}) => {
                 date = formConfirmationDate || new Date();
                 break;
             case 'arrivalDate':
-                date = formArrivalDate || parseISO(step.arrivalDateTime);
+                date = formArrivalDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
                 break;
             case 'arrivalTime':
-                date = formArrivalTime || parseISO(step.arrivalDateTime);
+                date = formArrivalTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
                 break;
             case 'departureDate':
-                date = formDepartureDate || parseISO(step.arrivalDateTime);
+                console.log('step.departureDateTime:', step.departureDateTime);
+                date = formDepartureDate || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
                 break;
             case 'departureTime':
-                date = formDepartureTime || parseISO(step.arrivalDateTime);
+                date = formDepartureTime || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
                 break;
             default:
                 date = new Date();

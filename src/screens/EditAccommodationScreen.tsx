@@ -21,7 +21,7 @@ const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 export default function EditAccommodationScreen({ route, navigation }: Props) {
   const { step, accommodation, refresh } = route.params;
   const isEditing = !!accommodation;
-  console.log('EditAccommodationScreen');
+  console.log('EditAccommodationScreen', step);
 
   const [thumbnail, setThumbnail] = useState(accommodation?.thumbnail ? { uri: accommodation.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
@@ -192,7 +192,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const renderScene = ({ route }) => {
     switch (route.key) {
       case 'infos':
-        return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
+                return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
         return <FilesTab accommodation={accommodation} files={files} setFiles={setFiles} />;
       default:

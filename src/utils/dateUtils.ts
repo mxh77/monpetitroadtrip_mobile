@@ -34,6 +34,18 @@ export const formatDateTimeJJMMAAHHMM = (dateString: string): string => {
   return `${formatDateJJMMAA(dateString)} - ${formatTimeHHMM(dateString)}`;
 };
 
+export const newDateUTC = () => {
+  console.log('newDateUTC');
+  return new Date(Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+    new Date().getUTCHours(),
+    new Date().getUTCMinutes(),
+    new Date().getUTCSeconds(),
+    new Date().getUTCMilliseconds()
+  ));
+};
 
 export const getTimeFromDate = (date: Date) =>
   `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
