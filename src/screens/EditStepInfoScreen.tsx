@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types';
 import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
@@ -11,6 +12,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getTimeFromDate } from '../utils/dateUtils';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
+import { Step } from '../../types';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -19,6 +21,7 @@ type Props = StackScreenProps<RootStackParamList, 'EditStepInfo'>;
 export default function EditStepInfoScreen({ route, navigation }: Props) {
   const { step, refresh } = route.params;
   console.log('Step ID:', step.id);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [addressInput, setAddressInput] = useState(step.address || '');
   const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
@@ -26,48 +29,36 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   const [tempDate, setTempDate] = useState(new Date());
   const [thumbnail, setThumbnail] = useState(step.thumbnail ? { uri: step.thumbnail.url } : null);
 
-  const [formState, setFormState] = useState({
-    title: step.name || '',
+  const [formState, setFormState] = useState<Step>({
+    id: step.id || '',
+    name: step.name || '',
     address: step.address || '',
-    arrivalDate: parseISO(step.arrivalDateTime) || new Date(),
-    arrivalTime: parseISO(step.arrivalDateTime) || new Date(),
-    departureDate: parseISO(step.departureDateTime) || new Date(),
-    departureTime: parseISO(step.departureDateTime) || new Date(),
+    arrivalDateTime: step.arrivalDateTime ||'',
+    departureDateTime: step.departureDateTime || '',
     notes: step.notes || '',
-    thumbnail: step?.thumbnail || null,
+    thumbnail: step.thumbnail || null,
+    roadtripId: step.roadtripId || '',
+    type: step.type || '',
   });
+
+  const [formArrivalDate, setFormArrivalDate] = useState<Date | null>(null);
+  const [formArrivalTime, setFormArrivalTime] = useState<Date | null>(null);
+  const [formDepartureDate, setFormDepartureDate] = useState<Date | null>(null);
+  const [formDepartureTime, setFormDepartureTime] = useState<Date | null>(null);
 
   console.log('formState:', formState);
 
   const googlePlacesRef = useRef(null);
 
   const handleSave = async () => {
+    setIsLoading(true);
     const isEdit = !!step.id;
     const url = isEdit ? `https://mon-petit-roadtrip.vercel.app/steps/${step.id}` : 'https://mon-petit-roadtrip.vercel.app/steps';
     const method = isEdit ? 'PUT' : 'POST';
-    const payload = {
-      name: formState.title,
-      address: formState.address,
-      arrivalDateTime: new Date(Date.UTC(
-        formState.arrivalDate.getUTCFullYear(),
-        formState.arrivalDate.getUTCMonth(),
-        formState.arrivalDate.getUTCDate(),
-        formState.arrivalTime.getUTCHours(),
-        formState.arrivalTime.getUTCMinutes()
-      )).toISOString(),
-      departureDateTime: new Date(Date.UTC(
-        formState.departureDate.getUTCFullYear(),
-        formState.departureDate.getUTCMonth(),
-        formState.departureDate.getUTCDate(),
-        formState.departureTime.getUTCHours(),
-        formState.departureTime.getUTCMinutes()
-      )).toISOString(),
-      notes: formState.notes,
-    };
 
     // Préparez le formulaire multipart/form-data
     const formData = new FormData();
-    formData.append('data', JSON.stringify(payload));
+    formData.append('data', JSON.stringify(formState));
 
     if (formState.thumbnail && typeof formState.thumbnail.url === 'string') {
       formData.append('thumbnail', {
@@ -78,7 +69,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
     }
 
     console.log('Méthode:', method);
-    console.log('Payload:', JSON.stringify(payload));
+    console.log('Payload:', JSON.stringify(formState));
 
     try {
       const response = await fetch(url, {
@@ -101,6 +92,8 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+    } finally {
+      setIsLoading(false); // Terminez le chargement
     }
   };
 
@@ -113,6 +106,17 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       ),
     });
   }, [navigation, handleSave]);
+
+  useEffect(() => {
+       if (formState.arrivalDateTime) {
+        setFormArrivalDate(parseISO(formState.arrivalDateTime));
+        setFormArrivalTime(parseISO(formState.arrivalDateTime));
+      }
+      if (formState.departureDateTime) {
+        setFormDepartureDate(parseISO(formState.departureDateTime));
+        setFormDepartureTime(parseISO(formState.departureDateTime));
+      }
+    }, [formState.arrivalDateTime, formState.departureDateTime]);
 
   useEffect(() => {
     if (addressInput !== formState.address) {
@@ -128,11 +132,36 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
     }
     setShowPicker({ type: '', isVisible: false });
     if (selectedDate) {
-      const newDate = new Date(selectedDate);
-      if (type === 'arrivalDate') setFormState((prevState) => ({ ...prevState, arrivalDate: newDate }));
-      if (type === 'arrivalTime') setFormState((prevState) => ({ ...prevState, arrivalTime: newDate }));
-      if (type === 'departureDate') setFormState((prevState) => ({ ...prevState, departureDate: newDate }));
-      if (type === 'departureTime') setFormState((prevState) => ({ ...prevState, departureTime: newDate }));
+      // Utiliser directement la date sélectionnée car elle représente déjà l'heure en UTC
+      const utcDate = selectedDate;
+      console.log('utcDate:', utcDate);
+
+
+      if (type === 'arrivalDate') {
+        const updatedDate = new Date(formState.arrivalDateTime || utcDate);
+        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+        setFormArrivalDate(updatedDate);
+        setFormState((prevState) => ({ ...prevState, arrivalDateTime: updatedDate.toISOString() }));
+        }
+      if (type === 'arrivalTime') {
+        const updatedTime = new Date(formState.arrivalDateTime || utcDate);
+        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes());
+        setFormArrivalTime(updatedTime);
+        setFormState((prevState) => ({ ...prevState, arrivalDateTime: updatedTime.toISOString() }));
+      }
+      if (type === 'departureDate') {
+        const updatedDate = new Date(formState.departureDateTime || utcDate);
+        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+        setFormDepartureDate(updatedDate);
+        setFormState((prevState) => ({ ...prevState, departureDateTime: updatedDate.toISOString() }));        
+      }
+      if (type === 'departureTime') {
+        const updatedTime = new Date(formState.departureDateTime || utcDate);
+        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes());
+        setFormDepartureTime(updatedTime);
+        setFormState((prevState) => ({ ...prevState, departureDateTime: updatedTime.toISOString() }));
+      }
+
     }
   };
 
@@ -140,36 +169,16 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
     let date;
     switch (type) {
       case 'arrivalDate':
-        date = new Date(Date.UTC(
-          formState.arrivalDate.getUTCFullYear(),
-          formState.arrivalDate.getUTCMonth(),
-          formState.arrivalDate.getUTCDate()
-        ));
+        date = formArrivalDate || new Date();
         break;
       case 'arrivalTime':
-        date = new Date(Date.UTC(
-          formState.arrivalTime.getUTCFullYear(),
-          formState.arrivalTime.getUTCMonth(),
-          formState.arrivalTime.getUTCDate(),
-          formState.arrivalTime.getUTCHours(),
-          formState.arrivalTime.getUTCMinutes()
-        ));
+        date = formArrivalTime || new Date();
         break;
       case 'departureDate':
-        date = new Date(Date.UTC(
-          formState.departureDate.getUTCFullYear(),
-          formState.departureDate.getUTCMonth(),
-          formState.departureDate.getUTCDate()
-        ));
+        date = formDepartureDate || new Date();
         break;
       case 'departureTime':
-        date = new Date(Date.UTC(
-          formState.departureTime.getUTCFullYear(),
-          formState.departureTime.getUTCMonth(),
-          formState.departureTime.getUTCDate(),
-          formState.departureTime.getUTCHours(),
-          formState.departureTime.getUTCMinutes()
-        ));
+        date = formDepartureTime || new Date();
         break;
       default:
         date = new Date();
@@ -203,12 +212,12 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
 
   const renderInputField = (field: string) => {
     switch (field) {
-      case 'stepTitle':
+      case 'stepName':
         return (
           <TextInput
             label="Nom de l'étape"
-            value={formState.title}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, title: text }))}
+            value={formState.name}
+            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
             style={styles.input}
           />
         );
@@ -266,41 +275,66 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
             />
           </View>
         );
-      case 'arrivalDate':
+      case 'arrivalDateTime':
         return (
-          <TextInput
-            label="Date d'arrivée"
-            value={format(formState.arrivalDate, 'dd/MM/yyyy')}
-            onFocus={() => openPicker('arrivalDate')}
-            style={styles.input}
-          />
+          <View style={styles.rowContainer}>
+            <View style={styles.rowItem}>
+              <TouchableOpacity onPress={() => openPicker('arrivalDate')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Date de d'arrivée"
+                    value={formArrivalDate ? formatInTimeZone(formArrivalDate, 'UTC', 'dd/MM/yyyy') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.rowItem}>
+              <TouchableOpacity onPress={() => openPicker('arrivalTime')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Heure d'arrivée"
+                    value={formArrivalTime ? formatInTimeZone(formArrivalTime, 'UTC', 'HH:mm') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
+
+            </View>
+          </View>
         );
-      case 'arrivalTime':
+
+
+      case 'departureDateTime':
         return (
-          <TextInput
-            label="Heure d'arrivée"
-            value={getTimeFromDate(formState.arrivalTime)}
-            onFocus={() => openPicker('arrivalTime')}
-            style={styles.input}
-          />
-        );
-      case 'departureDate':
-        return (
-          <TextInput
-            label="Date de départ"
-            value={format(formState.departureDate, 'dd/MM/yyyy')}
-            onFocus={() => openPicker('departureDate')}
-            style={styles.input}
-          />
-        );
-      case 'departureTime':
-        return (
-          <TextInput
-            label="Heure de départ"
-            value={getTimeFromDate(formState.departureTime)}
-            onFocus={() => openPicker('departureTime')}
-            style={styles.input}
-          />
+          <View style={styles.rowContainer}>
+            <View style={styles.rowItem}>
+              <TouchableOpacity onPress={() => openPicker('departureDate')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Date de départ"
+                    value={formDepartureDate ? formatInTimeZone(formDepartureDate, 'UTC', 'dd/MM/yyyy') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.rowItem}>
+              <TouchableOpacity onPress={() => openPicker('departureTime')}>
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Heure de départ"
+                    value={formDepartureTime ? formatInTimeZone(formDepartureTime, 'UTC', 'HH:mm') : ''}
+                    style={styles.input}
+                    editable={false} // Rend le champ non éditable
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
         );
       case 'notes':
         return (
@@ -333,8 +367,8 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       </View>
       <SectionList
         sections={[
-          { title: 'Informations de l\'étape', data: ['stepTitle', 'stepAddress'] },
-          { title: 'Dates et heures', data: ['arrivalDate', 'arrivalTime', 'departureDate', 'departureTime'] },
+          { title: 'Informations de l\'étape', data: ['stepName', 'stepAddress'] },
+          { title: 'Dates et heures', data: ['arrivalDateTime', 'departureDateTime'] },
           { title: 'Notes', data: ['notes'] },
         ]}
         renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
@@ -378,6 +412,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     padding: 10,
     backgroundColor: '#fff',
+  },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  rowItem: {
+    flex: 1,
+    marginRight: 10,
   },
   notesInput: {
     height: 100,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image,ActivityIndicator, Modal } from 'react-native';
+import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Activity } from '../../types';
@@ -54,6 +54,12 @@ export default function EditActivityScreen({ route, navigation }: Props) {
   const googlePlacesRef = useRef(null);
 
   const handleSave = async () => {
+    if (!formState.address) {
+      Alert.alert('Erreur', 'L\'adresse est obligatoire.');
+      return;
+    }
+
+
     setIsLoading(true);
     console.log('Activity ID:', activity?._id);
     const url = isEditing
@@ -198,21 +204,37 @@ export default function EditActivityScreen({ route, navigation }: Props) {
 
     console.log('Selected date:', selectedDate);
     if (selectedDate) {
-      const newDate = new Date(selectedDate);
+      // Utiliser directement la date sélectionnée car elle représente déjà l'heure en UTC
+      const utcDate = selectedDate;
+      console.log('utcDate:', utcDate);
+
       if (type === 'confirmationDate') {
-        setFormConfirmationDate(newDate);
+        setFormConfirmationDate(utcDate);
+        setFormState((prevState) => ({ ...prevState, confirmationDateTime: utcDate.toISOString() }));
       }
       if (type === 'startDate') {
-        setFormStartDate(newDate);
+        const updatedDate = new Date(formState.startDateTime || utcDate);
+        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+        setFormStartDate(updatedDate);
+        setFormState((prevState) => ({ ...prevState, startDateTime: updatedDate.toISOString() }));
       }
       if (type === 'startTime') {
-        setFormStartTime(newDate);
+        const updatedTime = new Date(formState.startDateTime || utcDate);
+        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+        setFormStartTime(updatedTime);
+        setFormState((prevState) => ({ ...prevState, startDateTime: updatedTime.toISOString() }));
       }
       if (type === 'endDate') {
-        setFormEndDate(newDate);
+        const updatedDate = new Date(formState.endDateTime || utcDate);
+        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+        setFormEndDate(updatedDate);
+        setFormState((prevState) => ({ ...prevState, endDateTime: updatedDate.toISOString() }));
       }
       if (type === 'endTime') {
-        setFormEndTime(newDate);
+        const updatedTime = new Date(formState.endDateTime || utcDate);
+        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+        setFormEndTime(updatedTime);
+        setFormState((prevState) => ({ ...prevState, endDateTime: updatedTime.toISOString() }));
       }
     }
   };
@@ -221,21 +243,20 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     let date;
     switch (type) {
       case 'confirmationDate':
-      case 'confirmationDate':
         date = formConfirmationDate || new Date();
         break;
       case 'startDate':
         console.log('formStartDate:', formStartDate);
-        date = formStartDate || parseISO(step.arrivalDateTime);
+        date = formStartDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
         break;
       case 'startTime':
-        date = formStartTime || parseISO(step.arrivalDateTime);
+        date = formStartTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
         break;
       case 'endDate':
-        date = formEndDate || parseISO(step.arrivalDateTime);
+        date = formEndDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
         break;
       case 'endTime':
-        date = formEndTime || parseISO(step.arrivalDateTime);
+        date = formEndTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
         break;
       default:
         date = new Date();
@@ -457,6 +478,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
             value={formState.notes}
             onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
             style={[styles.input, styles.notesInput]}
+            multiline
+            numberOfLines={10}
           />
         );
 

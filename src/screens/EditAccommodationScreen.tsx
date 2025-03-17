@@ -60,6 +60,12 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   }, []);
 
   const handleSave = async () => {
+    if (!formState.address) {
+      Alert.alert('Erreur', 'L\'adresse est obligatoire.');
+      return;
+    }
+
+
     setIsLoading(true);
     console.log('Accommodation ID:', accommodation?._id);
     const url = isEditing

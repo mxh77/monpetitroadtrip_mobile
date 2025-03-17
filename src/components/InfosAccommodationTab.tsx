@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
-import {  formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { SectionList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
@@ -13,9 +13,9 @@ import { newDateUTC } from '../utils/dateUtils';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
-const InfosAccommodationTab = ({ formState, updateFormState ,step}) => {
+const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
     // console.log('Début composant InfosAccommodationTab');
-console.log('step:', step);
+    console.log('step:', step);
     const [nameInput, setNameInput] = useState(formState.name || '');
     const [addressInput, setAddressInput] = useState(formState.address || '');
 
@@ -26,21 +26,21 @@ console.log('step:', step);
 
     const [formConfirmationDate, setFormConfirmationDate] = useState(
         formState.confirmationDateTime ? new Date(formState.confirmationDateTime) : null
-      );
+    );
 
     const [formArrivalDate, setFormArrivalDate] = useState(
         formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : null
-      );
-      const [formArrivalTime, setFormArrivalTime] = useState(
-        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) :  null
-      );
-      const [formDepartureDate, setFormDepartureDate] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) :  null
-      );
-      const [formDepartureTime, setFormDepartureTime] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) :  null
-      );
-      
+    );
+    const [formArrivalTime, setFormArrivalTime] = useState(
+        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : null
+    );
+    const [formDepartureDate, setFormDepartureDate] = useState(
+        formState.departureDateTime ? new Date(formState.departureDateTime) : null
+    );
+    const [formDepartureTime, setFormDepartureTime] = useState(
+        formState.departureDateTime ? new Date(formState.departureDateTime) : null
+    );
+
 
     const googlePlacesRef = useRef(null);
 
@@ -306,6 +306,8 @@ console.log('step:', step);
                         value={formState.notes}
                         onChangeText={(text) => updateFormState({ notes: text })}
                         style={[styles.input, styles.notesInput]}
+                        multiline
+                        numberOfLines={4}
                     />
                 );
 
