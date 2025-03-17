@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
 import { Button, Card } from 'react-native-paper';
@@ -49,7 +50,7 @@ export default function StopScreen({ route, navigation }: Props) {
     // Appeler l'API
     const fetchStop = async () => {
         try {
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/stops/${stepId}`);
+            const response = await fetch(`${config.BACKEND_URL}/stops/${stepId}`);
             const data = await response.json();
             console.log('Données de l\'API:'); // Ajoutez ce log
 

@@ -1,4 +1,5 @@
 // RoadTripScreen.tsx
+import config from '../config';
 import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -24,7 +25,7 @@ export default function RoadTripScreenAgenda({ route, navigation }: Props) {
   const fetchRoadtrip = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`);
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
       const data = await response.json();
       const filteredData: Roadtrip = {
         idRoadtrip: data._id,
@@ -91,11 +92,11 @@ export default function RoadTripScreenAgenda({ route, navigation }: Props) {
     try {
       let response;
       if (type === 'stage') {
-        response = await fetch(`https://mon-petit-roadtrip.vercel.app/stages/${stepId}`, {
+        response = await fetch(`${config.BACKEND_URL}/stages/${stepId}`, {
           method: 'DELETE',
         });
       } else {
-        response = await fetch(`https://mon-petit-roadtrip.vercel.app/stops/${stepId}`, {
+        response = await fetch(`${config.BACKEND_URL}/stops/${stepId}`, {
           method: 'DELETE',
         });
       }

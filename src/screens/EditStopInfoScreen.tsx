@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
@@ -41,7 +42,7 @@ export default function EditStopInfoScreen({ route, navigation }: Props) {
     const handleSave = async () => {
 
         const isEdit = !!stop.id;
-        const url = isEdit ? `https://mon-petit-roadtrip.vercel.app/stops/${stop.id}` : 'https://mon-petit-roadtrip.vercel.app/stops';
+        const url = isEdit ? `${config.BACKEND_URL}/stops/${stop.id}` : `${config.BACKEND_URL}/stops`;
         const method = isEdit ? 'PUT' : 'POST';
         const payload = {
             name: formState.title,

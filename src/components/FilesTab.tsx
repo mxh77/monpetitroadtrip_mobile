@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { FAB } from 'react-native-paper';
@@ -21,8 +22,8 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
     const fetchFiles = async () => {
         try {
             setLoading(true);
-            console.log('URL :', `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`);
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`);
+            console.log('URL :', `${config.BACKEND_URL}/accommodations/${accommodation._id}/documents`);
+            const response = await fetch(`${config.BACKEND_URL}/accommodations/${accommodation._id}/documents`);
             if (response.ok) {
                 const updatedAccommodation = await response.json();
                 console.log('Fichiers récupérés:', updatedAccommodation);
@@ -67,7 +68,7 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
     const handleDeleteFile = async (fileId) => {
         try {
             setLoading(true);
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents/${fileId}`, {
+            const response = await fetch(`${config.BACKEND_URL}/accommodations/${accommodation._id}/documents/${fileId}`, {
                 method: 'DELETE',
             });
 
@@ -120,7 +121,7 @@ const FilesTab = ({ accommodation, files, setFiles }) => {
 
             setLoading(true);
             console.log('formData:', formData);
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}/documents`, {
+            const response = await fetch(`${config.BACKEND_URL}/accommodations/${accommodation._id}/documents`, {
                 method: 'PATCH',
                 body: formData,
                 headers: {

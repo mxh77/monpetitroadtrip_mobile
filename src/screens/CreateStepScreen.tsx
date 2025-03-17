@@ -1,5 +1,6 @@
+import config from '../config';
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button, RadioButton } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types';
@@ -22,6 +23,7 @@ export default function CreateStepScreen({ route, navigation }: Props) {
     const [pickerDate, setPickerDate] = useState(new Date());
     const [tempDate, setTempDate] = useState(new Date());
     const [stepType, setStepType] = useState('1'); // 'stage' or 'stop'
+    const [isLoading, setIsLoading] = useState(false);
 
     const [formState, setFormState] = useState({
         title: '',
@@ -42,7 +44,9 @@ export default function CreateStepScreen({ route, navigation }: Props) {
             return;
         }
 
-        const url = `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}/steps`;
+        setIsLoading(true);
+
+        const url = `${config.BACKEND_URL}/roadtrips/${roadtripId}/steps`;
         const payload = {
             type: stepType === '1' ? 'Stage' : 'Stop',
             name: formState.title,
@@ -84,6 +88,8 @@ export default function CreateStepScreen({ route, navigation }: Props) {
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
             Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+        }finally {
+            setIsLoading(false);
         }
     };
 
@@ -314,6 +320,16 @@ export default function CreateStepScreen({ route, navigation }: Props) {
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={isLoading}
+                onRequestClose={() => { }}
+            >
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#007BFF" />
+                </View>
+            </Modal>
             <View style={styles.radioContainer}>
                 <RadioGroup radioButtons={[
                     { id: '1', label: 'Étape', value: 'stage', size: 24 },
@@ -396,5 +412,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginHorizontal: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
 });

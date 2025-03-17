@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
@@ -63,8 +64,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     setIsLoading(true);
     console.log('Activity ID:', activity?._id);
     const url = isEditing
-      ? `https://mon-petit-roadtrip.vercel.app/activities/${activity._id}`
-      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${step.roadtripId}/steps/${step.id}/activities`;
+      ? `${config.BACKEND_URL}/activities/${activity._id}`
+      : `${config.BACKEND_URL}/roadtrips/${step.roadtripId}/steps/${step.id}/activities`;
     console.log('formState:', formState);
 
     // Préparez le formulaire multipart/form-data
@@ -124,7 +125,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true); // Start loading
-            const url = `https://mon-petit-roadtrip.vercel.app/activities/${activity._id}`;
+            const url = `${config.BACKEND_URL}/activities/${activity._id}`;
 
             try {
               const response = await fetch(url, {
@@ -495,7 +496,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     >
       <Modal
         transparent={true}
-        animationType="none"
+        animationType="fade"
         visible={isLoading}
         onRequestClose={() => { }}
       >

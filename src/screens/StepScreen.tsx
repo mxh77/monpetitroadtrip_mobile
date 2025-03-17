@@ -1,5 +1,6 @@
+import config from '../config';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity,ActivityIndicator, Modal } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Step } from '../../types';
@@ -23,7 +24,7 @@ export default function StepScreen({ route, navigation }: Props) {
 
     // États
     const [step, setStep] = useState<Step | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
@@ -85,8 +86,9 @@ export default function StepScreen({ route, navigation }: Props) {
 
     // Appeler l'API
     const fetchStep = async () => {
+        setIsLoading(true);
         try {
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/steps/${stepId}`);
+            const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}`);
             const data = await response.json();
             console.log('Données de l\'API:', data);
 
@@ -120,7 +122,7 @@ export default function StepScreen({ route, navigation }: Props) {
         } catch (error) {
             console.error('Erreur lors de la récupération de l\'étape:', error);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
             setRefreshing(false);
         }
     };
@@ -222,9 +224,9 @@ export default function StepScreen({ route, navigation }: Props) {
 
         let uri = '';
         if (type === 'accommodation') {
-            uri = `https://mon-petit-roadtrip.vercel.app/accommodations/${id}`;
+            uri = `${config.BACKEND_URL}/accommodations/${id}`;
         } else if (type === 'activity') {
-            uri = `https://mon-petit-roadtrip.vercel.app/activities/${id}/dates`;
+            uri = `${config.BACKEND_URL}/activities/${id}/dates`;
         }
 
         try {
@@ -272,7 +274,7 @@ export default function StepScreen({ route, navigation }: Props) {
         fetchStep();
     }, []);
 
-    if (loading) {
+    if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#007BFF" />

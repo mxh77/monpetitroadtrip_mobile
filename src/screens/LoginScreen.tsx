@@ -1,9 +1,11 @@
+import config from '../config';
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, Text, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, TextInput, Text, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../types';
 import Constants from 'expo-constants';
+import { set } from 'date-fns';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 type LoginScreenRouteProp = RouteProp<RootStackParamList, 'Login'>;
@@ -13,19 +15,19 @@ type Props = {
   route: LoginScreenRouteProp;
 };
 
-const API_URL = Constants.expoConfig?.extra?.API_URL;
-
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('maxime.heron@gmail.com');
   const [password, setPassword] = useState('1234');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    setIsLoading(true);
     console.log('Attempting to log in with email:', email);
     console.log('Attempting to log in with password:', password);
-    console.log('Attempting to log in with url:', API_URL);
+    console.log('Attempting to log in with url:', config.BACKEND_URL);
     try {
-      const response = await fetch('https://mon-petit-roadtrip.vercel.app/auth/login', {
+      const response = await fetch(`${config.BACKEND_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,6 +38,10 @@ export default function LoginScreen({ navigation }: Props) {
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
+
+      //Afficher le token
+      console.log('Token:', data.token);
+
 
       if (response.ok) {
         // Connexion réussie
@@ -50,11 +56,29 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (error) {
       console.error('Error during login:', error);
       setErrorMessage('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsLoading(false
+      );
     }
   };
 
   return (
     <View style={styles.container}>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isLoading}
+        onRequestClose={() => {
+          setIsLoading(false);
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#007BFF" />
+          </View>
+        </View>
+      </Modal>
+
       <Text style={styles.title}>Connexion</Text>
       <TextInput
         style={styles.input}
@@ -114,5 +138,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
   },
 });

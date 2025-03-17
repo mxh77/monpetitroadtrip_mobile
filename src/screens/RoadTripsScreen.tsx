@@ -1,9 +1,13 @@
+import config from '../config';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl ,TouchableOpacity} from 'react-native';
+import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl, TouchableOpacity } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 import { RootStackParamList } from '../../types';
-import { FAB } from 'react-native-paper'; // Importer le bouton flottant
+import { FAB } from 'react-native-paper'; // Importer le b
+import Constants from 'expo-constants';
+import { useCustomFetch } from '../utils/utils';
+
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrips'>;
 
@@ -31,6 +35,8 @@ type Roadtrip = {
 };
 
 export default function RoadTripsScreen({ navigation, route }: Props) {
+  const customFetch = useCustomFetch();
+
   const [roadtrips, setRoadtrips] = useState<Roadtrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // État pour gérer le rafraîchissement
@@ -40,12 +46,11 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   const fetchRoadtrips = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://mon-petit-roadtrip.vercel.app/roadtrips');
-      console.log('Réponse de l\'API:', response);
+      const response = await customFetch(`${config.BACKEND_URL}/roadtrips`, {});
       const data = await response.json();
       setRoadtrips(data);
     } catch (error) {
-      console.error('Erreur lors de la récupération des roadtrips:', error);
+      //console.error('Erreur lors de la récupération des roadtrips:', error);
     } finally {
       setLoading(false);
     }
@@ -70,7 +75,7 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   const handleDeleteRoadtrip = async () => {
     if (selectedRoadtrip) {
       try {
-        const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${selectedRoadtrip._id}`, {
+        const response = await fetch(`${config.BACKEND_URL}/roadtrips/${selectedRoadtrip._id}`, {
           method: 'DELETE',
         });
 
@@ -147,7 +152,7 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
       />
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}

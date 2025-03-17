@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
@@ -42,7 +43,7 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
   const handleSave = async () => {
 
     const isEdit = !!stage.id;
-    const url = isEdit ? `https://mon-petit-roadtrip.vercel.app/stages/${stage.id}` : 'https://mon-petit-roadtrip.vercel.app/stages';
+    const url = isEdit ? `${config.BACKEND_URL}/stages/${stage.id}` : `${config.BACKEND_URL}/stages`;
     const method = isEdit ? 'PUT' : 'POST';
     const payload = {
       name: formState.title,

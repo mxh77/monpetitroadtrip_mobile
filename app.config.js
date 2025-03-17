@@ -44,6 +44,7 @@ export default ({ config }) => {
     },
     extra: {
       apiKey: process.env.GOOGLE_API_KEY, // Ajout de la clé API ici
+      BACKEND_URL: process.env.BACKEND_URL,
       eas: {
         projectId: "547f7eb3-324d-4060-91c6-924ef3f69de8", // Ajoutez ici l’identifiant du projet
       },

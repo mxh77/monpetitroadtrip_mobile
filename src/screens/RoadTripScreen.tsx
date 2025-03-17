@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -25,7 +26,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const fetchRoadtrip = async () => {
     setLoading(true); // Commencez le chargement
     try {
-      const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`);
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
       const data = await response.json();
       // console.log('Données de l\'API:', data);
 
@@ -127,7 +128,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     try {
       let response;
       //Adapter l'appel API selon le type de step
-      response = await fetch(`https://mon-petit-roadtrip.vercel.app/steps/${stepId}`, {
+      response = await fetch(`${config.BACKEND_URL}/steps/${stepId}`, {
         method: 'DELETE',
       });
 

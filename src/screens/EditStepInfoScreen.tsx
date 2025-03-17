@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
@@ -53,7 +54,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   const handleSave = async () => {
     setIsLoading(true);
     const isEdit = !!step.id;
-    const url = isEdit ? `https://mon-petit-roadtrip.vercel.app/steps/${step.id}` : 'https://mon-petit-roadtrip.vercel.app/steps';
+    const url = isEdit ? `${config.BACKEND_URL}/steps/${step.id}` : `${config.BACKEND_URL}/steps`;
     const method = isEdit ? 'PUT' : 'POST';
 
     // Préparez le formulaire multipart/form-data
@@ -357,6 +358,16 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={isLoading}
+        onRequestClose={() => { }}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007BFF" />
+        </View>
+      </Modal>
       <View style={styles.thumbnailContainer}>
         <TouchableOpacity onPress={pickImage}>
           <Image
@@ -437,5 +448,11 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });

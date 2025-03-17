@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, TextInput, Text, TouchableOpacity, Alert, Platform, Image, ActivityIndicator, Modal } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -63,7 +64,7 @@ export default function EditRoadTripScreen({ route, navigation }: Props) {
         setLoading(true);
         try {
           console.log('Fetching roadtrip details for ID:', roadtripId);
-          const response = await fetch(`https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`);
+          const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
           const data = await response.json();
           console.log('Fetched roadtrip data:', data);
           setRoadTrip({
@@ -88,8 +89,8 @@ export default function EditRoadTripScreen({ route, navigation }: Props) {
     try {
       const method = roadtripId ? 'PUT' : 'POST';
       const url = roadtripId
-        ? `https://mon-petit-roadtrip.vercel.app/roadtrips/${roadtripId}`
-        : 'https://mon-petit-roadtrip.vercel.app/roadtrips';
+        ? `${config.BACKEND_URL}/roadtrips/${roadtripId}`
+        : `${config.BACKEND_URL}/roadtrips`;
 
       // Préparez les données JSON
       const data = {
@@ -183,7 +184,7 @@ export default function EditRoadTripScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <Modal
         transparent={true}
-        animationType="none"
+        animationType="fade"
         visible={loading}
         onRequestClose={() => { }}
       >

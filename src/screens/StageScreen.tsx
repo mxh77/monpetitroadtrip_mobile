@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
 import { Button, Card } from 'react-native-paper';
@@ -84,7 +85,7 @@ export default function StageScreen({ route, navigation }: Props) {
     // Appeler l'API
     const fetchStage = async () => {
         try {
-            const response = await fetch(`https://mon-petit-roadtrip.vercel.app/stages/${stageId}`);
+            const response = await fetch(`${config.BACKEND_URL}/stages/${stageId}`);
             const data = await response.json();
             console.log('Données de l\'API:'); // Ajoutez ce log
 
@@ -223,9 +224,9 @@ export default function StageScreen({ route, navigation }: Props) {
 
         let uri = '';
         if (type === 'accommodation') {
-            uri = `https://mon-petit-roadtrip.vercel.app/accommodations/${id}`;
+            uri = `${config.BACKEND_URL}/accommodations/${id}`;
         } else if (type === 'activity') {
-            uri = `https://mon-petit-roadtrip.vercel.app/activities/${id}/dates`;
+            uri = `${config.BACKEND_URL}/activities/${id}/dates`;
         }
 
         try {

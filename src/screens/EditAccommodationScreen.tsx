@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
@@ -69,8 +70,8 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     setIsLoading(true);
     console.log('Accommodation ID:', accommodation?._id);
     const url = isEditing
-      ? `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}`
-      : `https://mon-petit-roadtrip.vercel.app/roadtrips/${step.roadtripId}/steps/${step.id}/accommodations`;
+      ? `${config.BACKEND_URL}/accommodations/${accommodation._id}`
+      : `${config.BACKEND_URL}/roadtrips/${step.roadtripId}/steps/${step.id}/accommodations`;
 
     console.log('formState:', formState);
 
@@ -131,7 +132,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true);
-            const url = `https://mon-petit-roadtrip.vercel.app/accommodations/${accommodation._id}`;
+            const url = `${config.BACKEND_URL}/accommodations/${accommodation._id}`;
 
             try {
               const response = await fetch(url, {
@@ -220,7 +221,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     >
       <Modal
         transparent={true}
-        animationType="none"
+        animationType="fade"
         visible={isLoading}
         onRequestClose={() => { }}
       >
