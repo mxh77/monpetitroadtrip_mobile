@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef,useCallback } from 'react';
 import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -13,6 +13,9 @@ import { format, parseISO, set } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
+import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import InfosActivityTab from '../components/InfosActivityTab';
+import FilesTabEntity from '../components/FilesTabEntity';
 
 type Props = StackScreenProps<RootStackParamList, 'EditActivity'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -20,10 +23,17 @@ const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 export default function EditActivityScreen({ route, navigation }: Props) {
   const { step, activity, refresh } = route.params;
   const isEditing = !!activity;
-  console.log('Activity:', activity);
+  // console.log('Activity:', activity);
   const [isLoading, setIsLoading] = useState(false);
 
   const [thumbnail, setThumbnail] = useState(activity?.thumbnail ? { uri: activity.thumbnail.url } : null);
+  const [files, setFiles] = useState<any[]>([]);
+
+  const [index, setIndex] = useState(0); 
+  const [routes] = useState([
+    { key: 'infos', title: 'Infos' },
+    { key: 'files', title: 'Fichiers' },
+  ]);
 
   const [addressInput, setAddressInput] = useState(activity?.address || '');
   const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
@@ -46,13 +56,14 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     thumbnail: activity?.thumbnail || null,
   });
 
-  const [formConfirmationDate, setFormConfirmationDate] = useState<Date | null>(null);
-  const [formStartDate, setFormStartDate] = useState<Date | null>(null);
-  const [formStartTime, setFormStartTime] = useState<Date | null>(null);
-  const [formEndDate, setFormEndDate] = useState<Date | null>(null);
-  const [formEndTime, setFormEndTime] = useState<Date | null>(null);
-
-  const googlePlacesRef = useRef(null);
+    const updateFormState = useCallback((newState) => {
+      console.log("Mise à jour de l'état dans le parent avec :", newState);
+      setFormState((prevState) => {
+        const updatedState = { ...prevState, ...newState };
+        console.log("État mis à jour dans le parent :", updatedState);
+        return updatedState;
+      });
+    }, []);
 
   const handleSave = async () => {
     if (!formState.address) {
@@ -60,8 +71,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       return;
     }
 
-
     setIsLoading(true);
+
     console.log('Activity ID:', activity?._id);
     const url = isEditing
       ? `${config.BACKEND_URL}/activities/${activity._id}`
@@ -174,99 +185,6 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     });
   }, [navigation, handleSave, handleDelete]);
 
-  useEffect(() => {
-    if (formState.confirmationDateTime) {
-      setFormConfirmationDate(parseISO(formState.confirmationDateTime));
-    }
-    if (formState.startDateTime) {
-      console.log('Setting formStartDate and formStartTime with:', formState.startDateTime);
-      setFormStartDate(parseISO(formState.startDateTime));
-      setFormStartTime(parseISO(formState.startDateTime));
-    }
-    if (formState.endDateTime) {
-      setFormEndDate(parseISO(formState.endDateTime));
-      setFormEndTime(parseISO(formState.endDateTime));
-    }
-  }, [formState.confirmationDateTime, formState.startDateTime, formState.endDateTime]);
-
-  useEffect(() => {
-    if (addressInput !== formState.address) {
-      console.log('Updating formState.address ', formState.address, 'with addressInput:', addressInput);
-      setFormState((prevState) => ({ ...prevState, address: addressInput }));
-    }
-  }, [addressInput, formState.address]);
-
-  const handlePickerChange = (type: string, event: any, selectedDate?: Date) => {
-    if (event.type === 'dismissed') {
-      setShowPicker({ type: '', isVisible: false });
-      return;
-    }
-    setShowPicker({ type: '', isVisible: false });
-
-    console.log('Selected date:', selectedDate);
-    if (selectedDate) {
-      // Utiliser directement la date sélectionnée car elle représente déjà l'heure en UTC
-      const utcDate = selectedDate;
-      console.log('utcDate:', utcDate);
-
-      if (type === 'confirmationDate') {
-        setFormConfirmationDate(utcDate);
-        setFormState((prevState) => ({ ...prevState, confirmationDateTime: utcDate.toISOString() }));
-      }
-      if (type === 'startDate') {
-        const updatedDate = new Date(formState.startDateTime || utcDate);
-        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
-        setFormStartDate(updatedDate);
-        setFormState((prevState) => ({ ...prevState, startDateTime: updatedDate.toISOString() }));
-      }
-      if (type === 'startTime') {
-        const updatedTime = new Date(formState.startDateTime || utcDate);
-        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
-        setFormStartTime(updatedTime);
-        setFormState((prevState) => ({ ...prevState, startDateTime: updatedTime.toISOString() }));
-      }
-      if (type === 'endDate') {
-        const updatedDate = new Date(formState.endDateTime || utcDate);
-        updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
-        setFormEndDate(updatedDate);
-        setFormState((prevState) => ({ ...prevState, endDateTime: updatedDate.toISOString() }));
-      }
-      if (type === 'endTime') {
-        const updatedTime = new Date(formState.endDateTime || utcDate);
-        updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
-        setFormEndTime(updatedTime);
-        setFormState((prevState) => ({ ...prevState, endDateTime: updatedTime.toISOString() }));
-      }
-    }
-  };
-
-  const openPicker = (type: string) => {
-    let date;
-    switch (type) {
-      case 'confirmationDate':
-        date = formConfirmationDate || new Date();
-        break;
-      case 'startDate':
-        console.log('formStartDate:', formStartDate);
-        date = formStartDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
-        break;
-      case 'startTime':
-        date = formStartTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
-        break;
-      case 'endDate':
-        date = formEndDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
-        break;
-      case 'endTime':
-        date = formEndTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
-        break;
-      default:
-        date = new Date();
-    }
-    setPickerDate(date);
-    setTempDate(date);
-    setShowPicker({ type, isVisible: true });
-  };
-
   const pickImage = async () => {
     const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (result.granted === false) {
@@ -289,201 +207,12 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     }
   };
 
-  const renderInputField = (field: string) => {
-    switch (field) {
-      case 'name':
-        return (
-          <TextInput
-            label="Nom de l'activité"
-            value={formState.name}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
-            style={styles.input}
-          />
-        );
-      case 'address':
-        return (
-          <View style={styles.input}>
-            <GooglePlacesAutocomplete
-              ref={googlePlacesRef}
-              placeholder="Adresse"
-              onPress={(data, details = null) => {
-                console.log('Address selected:', data.description);
-                setAddressInput(data.description);
-              }}
-              query={{
-                key: GOOGLE_API_KEY,
-                language: 'fr',
-              }}
-              textInputProps={{
-                value: addressInput,
-                onChangeText: (text) => {
-                  console.log("onChangeText (text:", text, "addressInput:", addressInput, "formState.address:", formState.address, ")");
-                  if (text !== "" || (text === "" && addressInput !== formState.address)) {
-                    console.log('Setting addressInput to:', text, " / addressInput:", addressInput, " / formState.address:", formState.address, ")");
-                    setAddressInput(text);
-                  }
-                },
-              }}
-              listViewDisplayed={false}
-              fetchDetails={true}
-              enablePoweredByContainer={false}
-              styles={{
-                textInputContainer: {
-                  backgroundColor: 'rgba(0,0,0,0)',
-                  borderTopWidth: 0,
-                  borderBottomWidth: 0,
-                },
-                textInput: {
-                  marginLeft: 0,
-                  marginRight: 0,
-                  height: 38,
-                  color: '#5d5d5d',
-                  fontSize: 16,
-                },
-                predefinedPlacesDescription: {
-                  color: '#1faadb',
-                },
-              }}
-              renderRightButton={() => (
-                <TouchableOpacity onPress={() => {
-                  setAddressInput('');
-                }}>
-                  <Icon name="times-circle" size={20} color="gray" style={styles.clearIcon} />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        );
-      case 'website':
-        return (
-          <TextInput
-            label="Site Web"
-            value={formState.website}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, website: text }))}
-            style={styles.input}
-          />
-        );
-      case 'phone':
-        return (
-          <TextInput
-            label="Téléphone"
-            value={formState.phone}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, phone: text }))}
-            style={styles.input}
-          />
-        );
-      case 'email':
-        return (
-          <TextInput
-            label="Mail"
-            value={formState.email}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, email: text }))}
-            style={styles.input}
-          />
-        );
-      case 'reservationNumber':
-        return (
-          <TextInput
-            label="N° Réservation"
-            value={formState.reservationNumber}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, reservationNumber: text }))}
-            style={styles.input}
-          />
-        );
-      case 'confirmationDateTime':
-        return (
-          <TouchableOpacity onPress={() => openPicker('confirmationDate')}>
-            <View pointerEvents="none">
-              <TextInput
-                label="Date de confirmation"
-                value={formConfirmationDate ? format(formConfirmationDate, 'dd/MM/yyyy') : ''}
-                style={styles.input}
-                editable={false} // Rend le champ non éditable
-              />
-            </View>
-          </TouchableOpacity>
-        );
-      case 'startDateTime':
-        return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('startDate')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Date de début"
-                    value={formStartDate ? formatInTimeZone(formStartDate, 'UTC', 'dd/MM/yyyy') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('startTime')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Heure de début"
-                    value={formStartTime ? formatInTimeZone(formStartTime, 'UTC', 'HH:mm') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
-                </View>
-              </TouchableOpacity>
-
-            </View>
-          </View>
-        );
-      case 'endDateTime':
-        return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('endDate')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Date de fin"
-                    value={formEndDate ? formatInTimeZone(formEndDate, 'UTC', 'dd/MM/yyyy') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('endTime')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Heure de fin"
-                    value={formEndTime ? formatInTimeZone(formEndTime, 'UTC', 'HH:mm') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-
-      case 'price':
-        return (
-          <TextInput
-            label="Prix"
-            value={formState.price ? formState.price.toString() : '0'}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, price: text }))}
-            style={styles.input}
-          />
-        );
-      case 'notes':
-        return (
-          <TextInput
-            label="Notes"
-            value={formState.notes}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
-            style={[styles.input, styles.notesInput]}
-            multiline
-            numberOfLines={10}
-          />
-        );
-
+  const renderScene = ({ route }) => {
+    switch (route.key) {
+      case 'infos':
+        return <InfosActivityTab formState={formState} updateFormState={updateFormState} step={step} />;
+      case 'files':
+        return <FilesTabEntity entityType="activities" entity={activity} files={files} setFiles={setFiles} />;
       default:
         return null;
     }
@@ -512,37 +241,12 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           />
         </TouchableOpacity>
       </View>
-      <SectionList
-        sections={[
-          { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
-          { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
-          { title: 'Dates de séjour', data: ['startDateTime', 'endDateTime', 'nights'] },
-          { title: 'Autres informations', data: ['price', 'notes'] },
-        ]}
-        renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionTitle}>{title}</Text>
-        )}
-      />
-      {showPicker.isVisible && (
-        <DateTimePicker
-          value={pickerDate}
-          mode={showPicker.type.includes('Time') ? 'time' : 'date'}
-          display="default"
-          timeZoneName='UTC'
-          onChange={(event, selectedDate) => {
-            if (event.type === 'set' && selectedDate) {
-              console.log('Selected date:', selectedDate);
-              handlePickerChange(showPicker.type, event, selectedDate);
-            } else {
-              setPickerDate(tempDate); // Reset to the original date if cancelled
-            }
-          }}
-        />
-      )}
+          <TabView
+            navigationState={{ index, routes }}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width: 0, height: 0 }}
+          />
     </KeyboardAvoidingView>
   );
 }

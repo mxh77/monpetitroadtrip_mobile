@@ -90,7 +90,7 @@ export default function StepScreen({ route, navigation }: Props) {
         try {
             const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}`);
             const data = await response.json();
-            console.log('Données de l\'API:', data);
+            // console.log('Données de l\'API:', data);
 
             const transformedData = {
                 ...data,

@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { FAB } from 'react-native-paper';
@@ -5,34 +6,30 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import * as DocumentPicker from 'expo-document-picker';
-import config from '../config';
 
 dayjs.extend(utc);
 
-const FilesTab = ({ entityType, entity, files, setFiles }) => {
+const FilesTabEntity = ({entityType, entity, files, setFiles }) => {
     const [fileToDelete, setFileToDelete] = useState(null);
-    const [loading, setLoading] = useState(false);
-    // console.log('FilesTab :', entity);
+    const [loading, setLoading] = useState(false); 
 
-    useEffect(() => { 
-        if (entity && entity.documents) { 
-            console.log('Documents de l\'entité:', entity.documents);
+    useEffect(() => {
+        if (entity && entity.documents) {
+            console.log('Use effect entity:', entity.documents);
+            fetchFiles();
             setFiles(entity.documents);
         }
-    }, [entity._id]);
+    }, [entity]);
 
     const fetchFiles = async () => {
         try {
             setLoading(true);
-
             console.log('URL :', `${config.BACKEND_URL}/${entityType}/${entity._id}/documents`);
-            const url = `${config.BACKEND_URL}/${entityType}/${entity._id}/documents`;
-            console.log('URL :', url);
-            const response = await fetch(url);
+            const response = await fetch(`${config.BACKEND_URL}/${entityType}/${entity._id}/documents`);
             if (response.ok) {
-                const updatedEntity = await response.json();
-                console.log('Fichiers récupérés:', updatedEntity);
-                setFiles(updatedEntity.documents);
+                const documentsEntity = await response.json();
+                console.log('Fichiers récupérés:', documentsEntity);
+                setFiles(documentsEntity);
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la récupération des fichiers.');
             }
@@ -73,17 +70,13 @@ const FilesTab = ({ entityType, entity, files, setFiles }) => {
     const handleDeleteFile = async (fileId) => {
         try {
             setLoading(true);
-            const url = `${config.BACKEND_URL}/${entityType}/${entity._id}/documents/${fileId}`;
-            const response = await fetch(url, {
+            const response = await fetch(`${config.BACKEND_URL}/${entityType}/${entity._id}/documents/${fileId}`, {
                 method: 'DELETE',
             });
 
-            if (response.ok) { 
-                const updatedEntity = await response.json();
-                setFiles(updatedEntity.documents);
-
-                // fetchFiles();
-                Alert.alert('Succès', 'Le fichier a été supprimé avec succès.');
+            if (response.ok) {
+                fetchFiles();
+                // Alert.alert('Succès', 'Le fichier a été supprimé avec succès.');
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du fichier.');
             }
@@ -130,9 +123,7 @@ const FilesTab = ({ entityType, entity, files, setFiles }) => {
 
             setLoading(true);
             console.log('formData:', formData);
-            console.log('URL PATCH:', `${config.BACKEND_URL}/${entityType}/${entity._id}/documents`);
-            const url = `${config.BACKEND_URL}/${entityType}/${entity._id}/documents`;
-            const response = await fetch(url, {
+            const response = await fetch(`${config.BACKEND_URL}/${entityType}/${entity._id}/documents`, {
                 method: 'PATCH',
                 body: formData,
                 headers: {
@@ -142,9 +133,10 @@ const FilesTab = ({ entityType, entity, files, setFiles }) => {
 
             if (response.ok) {
                 const data = await response.json();
-                setFiles(data.documents);
-                // fetchFiles();
-                Alert.alert('Succès', 'Le fichier a été ajouté avec succès.');
+                console.log('Données de l\'API:', data);
+
+                fetchFiles();
+                // Alert.alert('Succès', 'Le fichier a été ajouté avec succès.');
             } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ajout du fichier.');
             }
@@ -174,7 +166,7 @@ const FilesTab = ({ entityType, entity, files, setFiles }) => {
         </TouchableOpacity>
     );
 
-    // console.log('files:', files);
+    console.log('files:', files);
     return (
         <View style={styles.container}>
             {loading && (
@@ -252,4 +244,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default FilesTab;
+export default FilesTabEntity;

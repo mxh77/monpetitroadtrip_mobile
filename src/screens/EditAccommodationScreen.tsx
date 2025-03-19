@@ -14,7 +14,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import InfosAccommodationTab from '../components/InfosAccommodationTab';
-import FilesTab from '../components/FilesTab';
+// import FilesTab from '../components/FilesTab';
+// import FilesTabAccommodation from '../components/FilesTabAccommodation';
+import FilesTabEntity from '../components/FilesTabEntity';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -22,7 +24,7 @@ const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 export default function EditAccommodationScreen({ route, navigation }: Props) {
   const { step, accommodation, refresh } = route.params;
   const isEditing = !!accommodation;
-  console.log('EditAccommodationScreen', step);
+  // console.log('EditAccommodationScreen', step);
   const [isLoading, setIsLoading] = useState(false);
 
   const [thumbnail, setThumbnail] = useState(accommodation?.thumbnail ? { uri: accommodation.thumbnail.url } : null);
@@ -66,14 +68,13 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
       return;
     }
 
-
     setIsLoading(true);
     console.log('Accommodation ID:', accommodation?._id);
     const url = isEditing
       ? `${config.BACKEND_URL}/accommodations/${accommodation._id}`
       : `${config.BACKEND_URL}/roadtrips/${step.roadtripId}/steps/${step.id}/accommodations`;
 
-    console.log('formState:', formState);
+    // console.log('formState:', formState);
 
     // Préparez le formulaire multipart/form-data
     const formData = new FormData();
@@ -99,7 +100,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
       if (response.ok) {
         const updatedData = await response.json();
         console.log('Succès', 'Les informations ont été sauvegardées avec succès.');
-        Alert.alert('Succès', 'Les informations ont été sauvegardées avec succès.');
+        // Alert.alert('Succès', 'Les informations ont été sauvegardées avec succès.');
         if (refresh) {
           refresh();
         }
@@ -141,7 +142,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
 
               if (response.ok) {
                 console.log('Succès', 'L\'hébergement a été supprimé avec succès.');
-                Alert.alert('Succès', 'L\'hébergement a été supprimé avec succès.');
+                // Alert.alert('Succès', 'L\'hébergement a été supprimé avec succès.');
                 if (refresh) {
                   refresh();
                 }
@@ -208,7 +209,9 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
       case 'infos':
         return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
-        return <FilesTab accommodation={accommodation} files={files} setFiles={setFiles} />;
+        // return <FilesTab entityType="accommodations" entity={accommodation} files={files} setFiles={setFiles} />;
+        // return <FilesTabAccommodation accommodation={accommodation} files={files} setFiles={setFiles} />;
+        return <FilesTabEntity entityType="accommodations" entity={accommodation} files={files} setFiles={setFiles} />;
       default:
         return null;
     }

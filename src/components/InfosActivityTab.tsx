@@ -13,8 +13,8 @@ import { newDateUTC } from '../utils/dateUtils';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
-const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
-    // console.log('Début composant InfosAccommodationTab');
+const InfosActivityTab = ({ formState, updateFormState, step }) => {
+    // console.log('Début composant InfosActivityTab');
     // console.log('step:', step);
     const [nameInput, setNameInput] = useState(formState.name || '');
     const [addressInput, setAddressInput] = useState(formState.address || '');
@@ -28,17 +28,17 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
         formState.confirmationDateTime ? new Date(formState.confirmationDateTime) : null
     );
 
-    const [formArrivalDate, setFormArrivalDate] = useState(
-        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : null
+    const [formStartDate, setFormStartDate] = useState(
+        formState.startDateTime ? new Date(formState.startDateTime) : null
     );
-    const [formArrivalTime, setFormArrivalTime] = useState(
-        formState.arrivalDateTime ? new Date(formState.arrivalDateTime) : null
+    const [formStartTime, setFormStartTime] = useState(
+        formState.startDateTime ? new Date(formState.startDateTime) : null
     );
-    const [formDepartureDate, setFormDepartureDate] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) : null
+    const [formEndDate, setFormEndDate] = useState(
+        formState.endDateTime ? new Date(formState.endDateTime) : null
     );
-    const [formDepartureTime, setFormDepartureTime] = useState(
-        formState.departureDateTime ? new Date(formState.departureDateTime) : null
+    const [formEndTime, setFormEndTime] = useState(
+        formState.endDateTime ? new Date(formState.endDateTime) : null
     );
 
 
@@ -50,18 +50,18 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
             case 'confirmationDate':
                 date = formConfirmationDate || new Date();
                 break;
-            case 'arrivalDate':
-                date = formArrivalDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
+            case 'startDate':
+                date = formStartDate || (step?.startDateTime ? parseISO(step.startDateTime) : new Date());
                 break;
-            case 'arrivalTime':
-                date = formArrivalTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
+            case 'startTime':
+                date = formStartTime || (step?.startDateTime ? parseISO(step.startDateTime) : new Date());
                 break;
-            case 'departureDate':
-                console.log('step.departureDateTime:', step.departureDateTime);
-                date = formDepartureDate || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
+            case 'endDate':
+                console.log('step.endDateTime:', step.endDateTime);
+                date = formEndDate || (step?.endDateTime ? parseISO(step.endDateTime) : new Date());
                 break;
-            case 'departureTime':
-                date = formDepartureTime || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
+            case 'endTime':
+                date = formEndTime || (step?.endDateTime ? parseISO(step.endDateTime) : new Date());
                 break;
             default:
                 date = new Date();
@@ -85,26 +85,26 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
             if (type === 'confirmationDate') {
                 setFormConfirmationDate(utcDate);
                 updateFormState({ confirmationDateTime: utcDate.toISOString() });
-            } else if (type === 'arrivalDate') {
-                const updatedDate = new Date(formState.arrivalDateTime || utcDate);
+            } else if (type === 'startDate') {
+                const updatedDate = new Date(formState.startDateTime || utcDate);
                 updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
-                setFormArrivalDate(updatedDate);
-                updateFormState({ arrivalDateTime: updatedDate.toISOString() });
-            } else if (type === 'arrivalTime') {
-                const updatedTime = new Date(formState.arrivalDateTime || utcDate);
+                setFormStartDate(updatedDate);
+                updateFormState({ startDateTime: updatedDate.toISOString() });
+            } else if (type === 'startTime') {
+                const updatedTime = new Date(formState.startDateTime || utcDate);
                 updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
-                setFormArrivalTime(updatedTime);
-                updateFormState({ arrivalDateTime: updatedTime.toISOString() });
-            } else if (type === 'departureDate') {
-                const updatedDate = new Date(formState.departureDateTime || utcDate);
+                setFormStartTime(updatedTime);
+                updateFormState({ startDateTime: updatedTime.toISOString() });
+            } else if (type === 'endDate') {
+                const updatedDate = new Date(formState.endDateTime || utcDate);
                 updatedDate.setUTCFullYear(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
-                setFormDepartureDate(updatedDate);
-                updateFormState({ departureDateTime: updatedDate.toISOString() });
-            } else if (type === 'departureTime') {
-                const updatedTime = new Date(formState.departureDateTime || utcDate);
+                setFormEndDate(updatedDate);
+                updateFormState({ endDateTime: updatedDate.toISOString() });
+            } else if (type === 'endTime') {
+                const updatedTime = new Date(formState.endDateTime || utcDate);
                 updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
-                setFormDepartureTime(updatedTime);
-                updateFormState({ departureDateTime: updatedTime.toISOString() });
+                setFormEndTime(updatedTime);
+                updateFormState({ endDateTime: updatedTime.toISOString() });
             }
         }
     };
@@ -114,7 +114,7 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
             case 'name':
                 return (
                     <TextInput
-                        label="Nom de l'hébergement"
+                        label="Nom de l'activité"
                         value={formState.name}
                         onChangeText={(text) => updateFormState({ name: text })}
                         style={styles.input}
@@ -223,15 +223,15 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                         </View>
                     </TouchableOpacity>
                 );
-            case 'arrivalDateTime':
+            case 'startDateTime':
                 return (
                     <View style={styles.rowContainer}>
                         <View style={styles.rowItem}>
-                            <TouchableOpacity onPress={() => openPicker('arrivalDate')}>
+                            <TouchableOpacity onPress={() => openPicker('startDate')}>
                                 <View pointerEvents="none">
                                     <TextInput
-                                        label="Date d'arrivée"
-                                        value={formArrivalDate ? formatInTimeZone(formArrivalDate, 'UTC', 'dd/MM/yyyy') : ''}
+                                        label="Date de début"
+                                        value={formStartDate ? formatInTimeZone(formStartDate, 'UTC', 'dd/MM/yyyy') : ''}
                                         style={styles.input}
                                         editable={false} // Rend le champ non éditable
                                     />
@@ -239,11 +239,11 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                             </TouchableOpacity>
                         </View>
                         <View style={styles.rowItem}>
-                            <TouchableOpacity onPress={() => openPicker('arrivalTime')}>
+                            <TouchableOpacity onPress={() => openPicker('startTime')}>
                                 <View pointerEvents="none">
                                     <TextInput
-                                        label="Heure d'arrivée"
-                                        value={formArrivalTime ? formatInTimeZone(formArrivalTime, 'UTC', 'HH:mm') : ''}
+                                        label="Heure de début"
+                                        value={formStartTime ? formatInTimeZone(formStartTime, 'UTC', 'HH:mm') : ''}
                                         style={styles.input}
                                         editable={false} // Rend le champ non éditable
                                     />
@@ -252,15 +252,15 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                         </View>
                     </View>
                 );
-            case 'departureDateTime':
+            case 'endDateTime':
                 return (
                     <View style={styles.rowContainer}>
                         <View style={styles.rowItem}>
-                            <TouchableOpacity onPress={() => openPicker('departureDate')}>
+                            <TouchableOpacity onPress={() => openPicker('endDate')}>
                                 <View pointerEvents="none">
                                     <TextInput
-                                        label="Date de départ"
-                                        value={formDepartureDate ? formatInTimeZone(formDepartureDate, 'UTC', 'dd/MM/yyyy') : ''}
+                                        label="Date de fin"
+                                        value={formEndDate ? formatInTimeZone(formEndDate, 'UTC', 'dd/MM/yyyy') : ''}
                                         style={styles.input}
                                         editable={false} // Rend le champ non éditable
                                     />
@@ -268,11 +268,11 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                             </TouchableOpacity>
                         </View>
                         <View style={styles.rowItem}>
-                            <TouchableOpacity onPress={() => openPicker('departureTime')}>
+                            <TouchableOpacity onPress={() => openPicker('endTime')}>
                                 <View pointerEvents="none">
                                     <TextInput
-                                        label="Heure de départ"
-                                        value={formDepartureTime ? formatInTimeZone(formDepartureTime, 'UTC', 'HH:mm') : ''}
+                                        label="Heure de fin"
+                                        value={formEndTime ? formatInTimeZone(formEndTime, 'UTC', 'HH:mm') : ''}
                                         style={styles.input}
                                         editable={false} // Rend le champ non éditable
                                     />
@@ -280,15 +280,6 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                             </TouchableOpacity>
                         </View>
                     </View>
-                );
-            case 'nights':
-                return (
-                    <TextInput
-                        label="Nombre de nuits"
-                        value={formState.nights ? formState.nights.toString() : '0'}
-                        onChangeText={(text) => updateFormState({ nights: text })}
-                        style={styles.input}
-                    />
                 );
             case 'price':
                 return (
@@ -322,7 +313,7 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                 sections={[
                     { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
                     { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
-                    { title: 'Dates de séjour', data: ['arrivalDateTime', 'departureDateTime', 'nights'] },
+                    { title: 'Dates', data: ['startDateTime', 'endDateTime'] },
                     { title: 'Autres informations', data: ['price', 'notes'] },
                 ]}
                 renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
@@ -411,4 +402,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default InfosAccommodationTab;
+export default InfosActivityTab;
