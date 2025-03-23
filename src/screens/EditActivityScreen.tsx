@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useState, useEffect, useRef,useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -29,7 +29,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
   const [thumbnail, setThumbnail] = useState(activity?.thumbnail ? { uri: activity.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
 
-  const [index, setIndex] = useState(0); 
+  const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'infos', title: 'Infos' },
     { key: 'files', title: 'Fichiers' },
@@ -56,14 +56,14 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     thumbnail: activity?.thumbnail || null,
   });
 
-    const updateFormState = useCallback((newState) => {
-      console.log("Mise à jour de l'état dans le parent avec :", newState);
-      setFormState((prevState) => {
-        const updatedState = { ...prevState, ...newState };
-        console.log("État mis à jour dans le parent :", updatedState);
-        return updatedState;
-      });
-    }, []);
+  const updateFormState = useCallback((newState) => {
+    console.log("Mise à jour de l'état dans le parent avec :", newState);
+    setFormState((prevState) => {
+      const updatedState = { ...prevState, ...newState };
+      console.log("État mis à jour dans le parent :", updatedState);
+      return updatedState;
+    });
+  }, []);
 
   const handleSave = async () => {
     if (!formState.address) {
@@ -241,12 +241,12 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           />
         </TouchableOpacity>
       </View>
-          <TabView
-            navigationState={{ index, routes }}
-            renderScene={renderScene}
-            onIndexChange={setIndex}
-            initialLayout={{ width: 0, height: 0 }}
-          />
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        onIndexChange={setIndex}
+        initialLayout={{ width: 0, height: 0 }}
+      />
     </KeyboardAvoidingView>
   );
 }

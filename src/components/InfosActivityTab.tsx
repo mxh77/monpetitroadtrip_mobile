@@ -46,7 +46,9 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
 
     const openPicker = (type: string) => {
         let date;
+        console.log('type:', type);
         switch (type) {
+            
             case 'confirmationDate':
                 date = formConfirmationDate || new Date();
                 break;
@@ -57,7 +59,6 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                 date = formStartTime || (step?.startDateTime ? parseISO(step.startDateTime) : new Date());
                 break;
             case 'endDate':
-                console.log('step.endDateTime:', step.endDateTime);
                 date = formEndDate || (step?.endDateTime ? parseISO(step.endDateTime) : new Date());
                 break;
             case 'endTime':
@@ -66,6 +67,8 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
             default:
                 date = new Date();
         }
+
+        console.log('date:', date);
         setPickerDate(date);
         setTempDate(date);
         setShowPicker({ type, isVisible: true });

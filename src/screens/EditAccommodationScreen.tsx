@@ -14,8 +14,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import InfosAccommodationTab from '../components/InfosAccommodationTab';
-// import FilesTab from '../components/FilesTab';
-// import FilesTabAccommodation from '../components/FilesTabAccommodation';
 import FilesTabEntity from '../components/FilesTabEntity';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
@@ -209,8 +207,6 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
       case 'infos':
         return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
-        // return <FilesTab entityType="accommodations" entity={accommodation} files={files} setFiles={setFiles} />;
-        // return <FilesTabAccommodation accommodation={accommodation} files={files} setFiles={setFiles} />;
         return <FilesTabEntity entityType="accommodations" entity={accommodation} files={files} setFiles={setFiles} />;
       default:
         return null;
