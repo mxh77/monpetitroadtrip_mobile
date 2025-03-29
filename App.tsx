@@ -1,3 +1,4 @@
+import config from './src/config';
 import 'react-native-get-random-values';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -23,6 +24,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
+  console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home" id={undefined}>

@@ -1,9 +1,15 @@
+import { BACKEND_URL_DEV, BACKEND_URL_PROD, GOOGLE_API_KEY } from '@env';
 import Constants from 'expo-constants';
 
-// const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL;
-// const BACKEND_URL = 'https://mon-petit-roadtrip.vercel.app'
-const BACKEND_URL = 'http://192.168.1.2:3000'
-const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey;
+console.log('Environnement détecté :', Constants.executionEnvironment);
+console.log('URL Backend utilisée :', BACKEND_URL);
+
+// Détecter l'environnement d'exécution
+const isDevelopment =
+    __DEV__ || // Mode développement dans React Native
+    Constants.executionEnvironment === 'storeClient' || // Expo Go
+    Constants.executionEnvironment === 'local'; // Développement local
+const BACKEND_URL = isDevelopment ? BACKEND_URL_DEV : BACKEND_URL_PROD;
 
 const config = {
     BACKEND_URL,
