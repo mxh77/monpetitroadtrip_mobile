@@ -36,6 +36,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
 
   const [formState, setFormState] = useState<Accommodation>({
     _id: accommodation?._id || '',
+    active: accommodation?.active || true,
     name: accommodation?.name || '',
     address: accommodation?.address || '',
     website: accommodation?.website || '',
@@ -47,6 +48,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
     departureDateTime: accommodation?.departureDateTime || '',
     nights: accommodation?.nights || 0,
     price: accommodation?.price || '0',
+    currency: accommodation?.currency || 'EUR',
     notes: accommodation?.notes || '',
     thumbnail: accommodation?.thumbnail || null,
   });

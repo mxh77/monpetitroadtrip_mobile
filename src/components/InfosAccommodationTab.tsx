@@ -10,6 +10,7 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { newDateUTC } from '../utils/dateUtils';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -292,13 +293,34 @@ const InfosAccommodationTab = ({ formState, updateFormState, step }) => {
                 );
             case 'price':
                 return (
-                    <TextInput
-                        label="Prix"
-                        value={formState.price ? formState.price.toString() : '0'}
-                        onChangeText={(text) => updateFormState({ price: text })}
-                        style={styles.input}
-                    />
+                    <View style={styles.rowContainer}>
+                        <View style={styles.rowItem}>
+                            <TextInput
+                                label="Prix"
+                                value={formState.price ? formState.price.toString() : '0'}
+                                onChangeText={(text) => updateFormState({ price: text })}
+                                style={styles.input}
+                                keyboardType="numeric"
+                            />
+                        </View>
+                        <View style={styles.rowItem}>
+                            <Dropdown
+                                style={styles.dropdown}
+                                data={[
+                                    { label: 'EUR', value: 'EUR' },
+                                    { label: 'USD', value: 'USD' },
+                                    { label: 'CAD', value: 'CAD' },
+                                ]}
+                                labelField="label"
+                                valueField="value"
+                                placeholder="Sélectionner une devise"
+                                value={formState.currency}
+                                onChange={(item) => updateFormState({ currency: item.value })}
+                            />
+                        </View>
+                    </View>
                 );
+
             case 'notes':
                 return (
                     <TextInput
@@ -408,6 +430,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f0f0',
         borderRadius: 5,
         marginBottom: 10,
+    },
+    dropdown: {
+        height: 65,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        backgroundColor: '#fff',
     },
 });
 

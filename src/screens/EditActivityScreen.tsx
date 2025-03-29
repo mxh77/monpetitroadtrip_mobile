@@ -52,6 +52,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     startDateTime: activity?.startDateTime || '',
     endDateTime: activity?.endDateTime || '',
     price: activity?.price || '0',
+    currency: activity?.currency || 'EUR',
     notes: activity?.notes || '',
     thumbnail: activity?.thumbnail || null,
   });

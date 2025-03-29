@@ -1,6 +1,6 @@
 import config from '../config';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity,ActivityIndicator, Modal } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Step } from '../../types';
@@ -20,7 +20,7 @@ Geocoder.init(GOOGLE_API_KEY);
 export default function StepScreen({ route, navigation }: Props) {
     //Récupération des paramètres de navigation
     const { type, roadtripId, stepId: stepId, refresh } = route.params;
-    console.log('Paramètres de navigation:', type, ', roadtripId:', roadtripId, ', stepId:', stepId);
+    // console.log('Paramètres de navigation:', type, ', roadtripId:', roadtripId, ', stepId:', stepId);
 
     // États
     const [step, setStep] = useState<Step | null>(null);
@@ -28,10 +28,10 @@ export default function StepScreen({ route, navigation }: Props) {
     const [refreshing, setRefreshing] = useState(false);
     const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
-        address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string
+        _id: string; address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string; active?: boolean
     }>>([]);
     const [coordinatesActivities, setCoordinatesActivities] = useState<Array<{
-        address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string
+        _id: string; address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string; active?: boolean
     }>>([]);
     const mapRef = useRef<MapView>(null);
     const [index, setIndex] = useState(0); // État pour suivre l'onglet actif
@@ -130,28 +130,171 @@ export default function StepScreen({ route, navigation }: Props) {
     // Utiliser un useEffect pour surveiller les changements de l'état step
     useEffect(() => {
         if (step) {
-            console.log('Step mis à jour:', step.id, step.name, step.latitude, step.longitude);
+            // console.log('Step mis à jour:', step.id, step.name, step.latitude, step.longitude);
         }
     }, [step]);
 
     // Utiliser un useEffect pour surveiller les changements des coordonnées
     useEffect(() => {
         if (coordinatesStep) {
-            console.log('Coordonnées mises à jour:', coordinatesStep.latitude, coordinatesStep.longitude);
+            // console.log('Coordonnées mises à jour:', coordinatesStep.latitude, coordinatesStep.longitude);
         }
     }, [coordinatesStep]);
 
+    //Gestion des toggles pour les accommodations
+    const toggleActiveStatusAccommodation = async (accommodation) => {
+        const previousActive = accommodation.active; // Sauvegarder l'état précédent
+        const updatedActive = !previousActive; // Inverser l'état actif
+
+        try {
+            // Mettre à jour localement les coordonnées des hébergements
+            setCoordinatesAccommodations((prev) =>
+                prev.map((acc) =>
+                    acc._id === accommodation._id ? { ...acc, active: updatedActive } : acc
+                )
+            );
+
+            // Mettre à jour localement l'état de l'accommodation dans `step`
+            setStep((prevStep) => ({
+                ...prevStep,
+                accommodations: prevStep.accommodations.map((acc) =>
+                    acc._id === accommodation._id ? { ...acc, active: updatedActive } : acc
+                ),
+            }));
+
+            // Réajuster la carte
+            adjustMap();
+
+            // Envoyer la mise à jour au backend
+            const response = await fetch(
+                `${config.BACKEND_URL}/accommodations/${accommodation._id}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ...accommodation, active: updatedActive }),
+                }
+            );
+
+            if (response.ok) {
+                console.log('Toggle Hébergement mis à jour avec succès');
+            } else {
+                console.error('Erreur lors de la mise à jour de l\'hébergement');
+                // Restaurer l'état précédent en cas d'erreur
+                setCoordinatesAccommodations((prev) =>
+                    prev.map((acc) =>
+                        acc._id === accommodation._id ? { ...acc, active: previousActive } : acc
+                    )
+                );
+                setStep((prevStep) => ({
+                    ...prevStep,
+                    accommodations: prevStep.accommodations.map((acc) =>
+                        acc._id === accommodation._id ? { ...acc, active: previousActive } : acc
+                    ),
+                }));
+            }
+        } catch (error) {
+            console.error('Erreur réseau:', error);
+            // Restaurer l'état précédent en cas d'erreur
+            setCoordinatesAccommodations((prev) =>
+                prev.map((acc) =>
+                    acc._id === accommodation._id ? { ...acc, active: previousActive } : acc
+                )
+            );
+            setStep((prevStep) => ({
+                ...prevStep,
+                accommodations: prevStep.accommodations.map((acc) =>
+                    acc._id === accommodation._id ? { ...acc, active: previousActive } : acc
+                ),
+            }));
+        }
+    };
+
+    //Gestion des toggles pour les activities
+    const toggleActiveStatusActivity = async (activity) => {
+        const previousActive = activity.active; // Sauvegarder l'état précédent
+        const updatedActive = !previousActive; // Inverser l'état actif
+
+        try {
+            // Mettre à jour localement les coordonnées des hébergements
+            setCoordinatesActivities((prev) =>
+                prev.map((acc) =>
+                    acc._id === activity._id ? { ...acc, active: updatedActive } : acc
+                )
+            );
+
+            // Mettre à jour localement l'état de l'activity dans `step`
+            setStep((prevStep) => ({
+                ...prevStep,
+                activities: prevStep.activities.map((acc) =>
+                    acc._id === activity._id ? { ...acc, active: updatedActive } : acc
+                ),
+            }));
+
+            // Réajuster la carte
+            adjustMap();
+
+            // Envoyer la mise à jour au backend
+            const response = await fetch(
+                `${config.BACKEND_URL}/activities/${activity._id}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ...activity, active: updatedActive }),
+                }
+            );
+
+            if (response.ok) {
+                console.log('Toggle Activité mis à jour avec succès');
+            } else {
+                console.error('Erreur lors de la mise à jour de l\'hébergement');
+                // Restaurer l'état précédent en cas d'erreur
+                setCoordinatesActivities((prev) =>
+                    prev.map((acc) =>
+                        acc._id === activity._id ? { ...acc, active: previousActive } : acc
+                    )
+                );
+                setStep((prevStep) => ({
+                    ...prevStep,
+                    activities: prevStep.activities.map((acc) =>
+                        acc._id === activity._id ? { ...acc, active: previousActive } : acc
+                    ),
+                }));
+            }
+        } catch (error) {
+            console.error('Erreur réseau:', error);
+            // Restaurer l'état précédent en cas d'erreur
+            setCoordinatesActivities((prev) =>
+                prev.map((acc) =>
+                    acc._id === activity._id ? { ...acc, active: previousActive } : acc
+                )
+            );
+            setStep((prevStep) => ({
+                ...prevStep,
+                activities: prevStep.activities.map((acc) =>
+                    acc._id === activity._id ? { ...acc, active: previousActive } : acc
+                ),
+            }));
+        }
+    };
+
     // Fonction pour ajuster la carte
     const adjustMap = () => {
+        console.log('Ajustement de la carte avec les coordonnées');
         if (mapRef.current) {
             const allCoordinates = [
                 coordinatesStep,
-                ...coordinatesAccommodations,
-                ...coordinatesActivities,
+                ...coordinatesAccommodations.filter(acc => acc.active),
+                ...coordinatesActivities.filter(act => act.active),
             ].filter(coord => coord && coord.latitude !== undefined && coord.longitude !== undefined);
 
+            console.log('Coordonnées utilisées pour ajuster la carte:', allCoordinates);
+
             if (allCoordinates.length > 0) {
-                console.log('Ajustement de la carte avec les coordonnées');
+                // console.log('Ajustement de la carte avec les coordonnées');
                 mapRef.current.fitToCoordinates(allCoordinates, {
                     edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
                     animated: true,
@@ -167,7 +310,11 @@ export default function StepScreen({ route, navigation }: Props) {
 
     const renderMarkerAccommodations = useCallback(() => {
         if (!coordinatesAccommodations) return null;
-        return coordinatesAccommodations.map((accommodation, index) => (
+
+        // Filtrer les hébergements actifs uniquement
+        const activeAccommodations = coordinatesAccommodations.filter(accommodation => accommodation.active);
+
+        return activeAccommodations.map((accommodation, index) => (
             <Marker
                 key={`${accommodation.latitude}-${accommodation.longitude}`}
                 coordinate={{
@@ -195,7 +342,11 @@ export default function StepScreen({ route, navigation }: Props) {
 
     const renderMarkerActivities = useCallback(() => {
         if (!coordinatesActivities) return null;
-        return coordinatesActivities.map((activity, index) => (
+
+        // Filtrer les activités actives uniquement
+        const activeActivities = coordinatesActivities.filter(activity => activity.active);
+
+        return activeActivities.map((activity, index) => (
             <Marker
                 key={`${activity.latitude}-${activity.longitude}`}
                 coordinate={{
@@ -264,8 +415,8 @@ export default function StepScreen({ route, navigation }: Props) {
 
     const renderScene = SceneMap({
         infos: () => <GeneralInfo step={step} navigation={navigation} fetchStep={fetchStep} />,
-        activities: () => type === 'Stage' ? <Activities step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
-        accommodations: () => type === 'Stage' ? <Accommodations step={step} navigation={navigation} fetchStep={fetchStep} /> : null,
+        activities: () => type === 'Stage' ? <Activities step={step} navigation={navigation} fetchStep={fetchStep} toggleActiveStatusActivity={toggleActiveStatusActivity} /> : null,
+        accommodations: () => type === 'Stage' ? <Accommodations step={step} navigation={navigation} fetchStep={fetchStep} toggleActiveStatusAccommodation={toggleActiveStatusAccommodation} /> : null,
         //planning: () => <Planning step={step} handleEventChange={handleEventChange} />,
     });
 
@@ -295,7 +446,7 @@ export default function StepScreen({ route, navigation }: Props) {
             <MapView
                 ref={(ref) => {
                     mapRef.current = ref; // Assurez-vous que mapRef est mis à jour ici
-                    console.log('MapView ref:'); // Ajoutez un log pour vérifier si la référence est attachée
+                    // console.log('MapView ref:'); // Ajoutez un log pour vérifier si la référence est attachée
                 }}
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
@@ -306,7 +457,7 @@ export default function StepScreen({ route, navigation }: Props) {
                     longitudeDelta: 0.0421,
                 }}
                 onMapReady={() => {
-                    console.log('Carte prête.');
+                    // console.log('Carte prête.');
                     adjustMap();
                 }}
             >

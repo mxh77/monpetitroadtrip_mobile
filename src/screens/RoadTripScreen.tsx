@@ -11,6 +11,7 @@ import { checkDateConsistency } from '../utils/controls'; // Importer la fonctio
 import Timetable from '../components/timetable/src'; // Importer Timetable
 import rvIcon from '../../assets/icones/RV/rv_32.png';
 import { getMinStartDateTime } from '../utils/dateUtils';
+import { RefreshControl } from 'react-native-gesture-handler';
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
@@ -20,6 +21,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const { roadtripId } = route.params;
   const [roadtrip, setRoadtrip] = useState<Roadtrip | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // État pour le rafraîchissement
   const [alertCount, setAlertCount] = useState(0);
   const [errors, setErrors] = useState<{ message: string, stepId: string, stepType: string }[]>([]);
 
@@ -91,16 +93,16 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     console.log('Mise à jour de la barre de navigation');
     navigation.setOptions({
       headerRight: () => (
-        alertCount > 0 ? (
-          <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-              <Icon name="bell" size={24} color={alertCount > 0 ? 'red' : 'gray'} />
-              {alertCount > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+          {alertCount > 0 && (
+            <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+                <Icon name="bell" size={24} color="red" />
                 <Text style={{ color: 'red', marginLeft: 10 }}>{alertCount}</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        ) : null
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
       ),
     });
   }, [navigation, alertCount, errors]);
@@ -162,6 +164,13 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     </TouchableOpacity>
   );
 
+  // Fonction pour gérer le rafraîchissement
+  const onRefresh = async () => {
+    setRefreshing(true); // Démarrer l'animation de rafraîchissement
+    await fetchRoadtrip(); // Recharger les données
+    setRefreshing(false); // Arrêter l'animation de rafraîchissement
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -208,6 +217,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       <FlatList
         data={sortedSteps}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item, index }) => (
           <>
             {index > 0 && (

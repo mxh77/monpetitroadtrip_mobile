@@ -23,6 +23,7 @@ export interface Step {
 
 export interface Accommodation {
   _id: string;
+  active: boolean;
   name: string;
   address: string;
   website?: string;
@@ -34,6 +35,7 @@ export interface Accommodation {
   departureDateTime: string;
   nights?: number;
   price?: string;
+  currency?: string;
   notes?: string;
   thumbnail?: File;
   photos?: File[];
@@ -42,6 +44,7 @@ export interface Accommodation {
 
 export interface Activity {
   _id: string;
+  active: boolean;
   name: string;
   address: string;
   website?: string;
@@ -52,6 +55,7 @@ export interface Activity {
   startDateTime: string;
   endDateTime: string;
   price?: string;
+  currency?: string;
   notes?: string;
   thumbnail?: File;
   photos?: File[];
