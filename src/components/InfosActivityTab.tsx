@@ -54,16 +54,16 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                 date = formConfirmationDate || new Date();
                 break;
             case 'startDate':
-                date = formStartDate || (step?.startDateTime ? parseISO(step.startDateTime) : new Date());
+                date = formStartDate || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
                 break;
             case 'startTime':
-                date = formStartTime || (step?.startDateTime ? parseISO(step.startDateTime) : new Date());
+                date = formStartTime || (step?.arrivalDateTime ? parseISO(step.arrivalDateTime) : new Date());
                 break;
             case 'endDate':
-                date = formEndDate || (step?.endDateTime ? parseISO(step.endDateTime) : new Date());
+                date = formEndDate || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
                 break;
             case 'endTime':
-                date = formEndTime || (step?.endDateTime ? parseISO(step.endDateTime) : new Date());
+                date = formEndTime || (step?.departureDateTime ? parseISO(step.departureDateTime) : new Date());
                 break;
             default:
                 date = new Date();

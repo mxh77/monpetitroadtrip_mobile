@@ -18,6 +18,7 @@ import EditStageInfoScreen from './src/screens/EditStageInfoScreen';
 import EditStopInfoScreen from './src/screens/EditStopInfoScreen';
 import EditAccommodationScreen from './src/screens/EditAccommodationScreen';
 import EditActivityScreen from './src/screens/EditActivityScreen';
+import HikeSuggestionsScreen from './src/screens/HikeSuggestionsScreen';
 import ErrorsScreen from './src/screens/ErrorsScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 
@@ -71,6 +72,7 @@ export default function App() {
         <Stack.Screen name="EditStopInfo" component={EditStopInfoScreen} options={{ title: 'Arrêt' }} />
         <Stack.Screen name="EditAccommodation" component={EditAccommodationScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="EditActivity" component={EditActivityScreen} options={{ title: 'Etape' }} />
+        <Stack.Screen name="HikeSuggestions" component={HikeSuggestionsScreen} options={{ title: 'Suggestions de Randonnées' }} />
         <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
       </Stack.Navigator>
     </NavigationContainer>

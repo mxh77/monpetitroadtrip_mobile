@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Composant TriangleCorner
 export const TriangleCorner = ({ style }) => {
@@ -12,8 +13,20 @@ export const TriangleCornerTopRight = ({ style }) => {
   return (
     <View style={style}>
       <TriangleCorner style={styles.triangleCornerTopRight} />
-      <View style={styles.triangleButtonTextContainer}>
+      <View style={styles.triangleTopRightButtonTextContainer}>
         <Fontawesome5 name="plus" size={20} color="white" />
+      </View>
+    </View>
+  );
+};
+
+// Composant TriangleCornerTopLeft
+export const TriangleCornerTopLeft = ({ style }) => {
+  return (
+    <View style={style}>
+      <TriangleCorner style={styles.TriangleCornerTopLeft} />
+      <View style={styles.triangleTopLeftButtonTextContainer}>
+        <Ionicons name="sparkles" size={24} color="gold" />
       </View>
     </View>
   );
@@ -30,13 +43,25 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderTopColor: 'green', // Changez la couleur selon vos besoins
   },
+  TriangleCornerTopLeft: {
+    transform: [{ rotate: '0deg' }],
+  },
   triangleCornerTopRight: {
     transform: [{ rotate: '90deg' }],
   },
-  triangleButtonTextContainer: {
+  triangleTopRightButtonTextContainer: {
     position: 'absolute',
     top: -10,
     left: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+    height: 50,
+  },
+  triangleTopLeftButtonTextContainer: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
     justifyContent: 'center',
     alignItems: 'center',
     width: 50,

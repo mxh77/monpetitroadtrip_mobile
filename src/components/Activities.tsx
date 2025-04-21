@@ -4,7 +4,7 @@ import { Text, View, ScrollView, TouchableOpacity, Image, StyleSheet } from 'rea
 import { Card, Button } from 'react-native-paper';
 import { formatDateJJMMAA } from '../utils/dateUtils';
 import { openInGoogleMaps, openWebsite } from '../utils/utils';
-import { TriangleCornerTopRight } from './shapes';
+import { TriangleCornerTopRight, TriangleCornerTopLeft } from './shapes';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 import { Switch } from 'react-native-gesture-handler';
 
@@ -122,6 +122,12 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
       >
         <TriangleCornerTopRight style={styles.triangleButton} />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.triangleButtonContainerTopLeft}
+        onPress={() => navigation.navigate('HikeSuggestions', { idStep: step.id })}
+      >
+        <TriangleCornerTopLeft style={styles.triangleButtonTopLeft} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -169,6 +175,15 @@ const styles = StyleSheet.create({
   },
   disabledThumbnail: {
     opacity: 0.5, // Réduire l'opacité pour indiquer que l'image est désactivée
+  },
+  triangleButtonContainerTopLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  triangleButtonTopLeft: {
+    width: 50,
+    height: 50,
   },
 });
 

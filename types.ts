@@ -124,6 +124,10 @@ export type RootStackParamList = {
     refresh: () => void;
 
   };
+  HikeSuggestions: {
+    step: Step;
+    refresh: () => void;
+  };
   Errors: {
     roadtripId: string;
     errors: { message: string, stepId: string, stepType: string }[];

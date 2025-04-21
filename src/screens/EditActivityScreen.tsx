@@ -55,6 +55,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     currency: activity?.currency || 'EUR',
     notes: activity?.notes || '',
     thumbnail: activity?.thumbnail || null,
+    active: activity?.active || false, // Added the missing 'active' property
   });
 
   const updateFormState = useCallback((newState) => {
