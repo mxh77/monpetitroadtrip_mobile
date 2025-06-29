@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import InfosActivityTab from '../components/InfosActivityTab';
 import FilesTabEntity from '../components/FilesTabEntity';
+import PhotosTabEntity from '../components/PhotosTabEntity';
 
 type Props = StackScreenProps<RootStackParamList, 'EditActivity'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -28,11 +29,13 @@ export default function EditActivityScreen({ route, navigation }: Props) {
 
   const [thumbnail, setThumbnail] = useState(activity?.thumbnail ? { uri: activity.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<any[]>([]);
 
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'infos', title: 'Infos' },
     { key: 'files', title: 'Fichiers' },
+    { key: 'photos', title: 'Photos' },
   ]);
 
   const [addressInput, setAddressInput] = useState(activity?.address || '');
@@ -216,6 +219,8 @@ export default function EditActivityScreen({ route, navigation }: Props) {
         return <InfosActivityTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
         return <FilesTabEntity entityType="activities" entity={activity} files={files} setFiles={setFiles} />;
+      case 'photos':
+        return <PhotosTabEntity entityType="activities" entity={activity} photos={photos} setPhotos={setPhotos} />;
       default:
         return null;
     }
