@@ -23,31 +23,34 @@ import ErrorsScreen from './src/screens/ErrorsScreen';
 import StepStoryScreen from './src/screens/StepStoryScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 import SettingsScreen from './src/screens/SettingsScreen';
+import { CompressionProvider } from './src/utils/CompressionContext';
+import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home" id={undefined}>
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
-        <Stack.Screen
-          name="RoadTrips"
-          component={RoadTripsScreen}
-          options={({ navigation, route }) => ({
-            headerTitle: 'MES ROADTRIPS',
-            headerTitleAlign: 'center', // Centrer le titre
-            headerRight: () => (
-              <Icon
-                name="logout"
-                size={24}
-                color="#007BFF"
-                onPress={() => navigation.navigate('Home')}
-                style={{ marginRight: 16 }}
-              />
-            ),
+    <CompressionProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home" id={undefined}>
+          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
+          <Stack.Screen
+            name="RoadTrips"
+            component={RoadTripsScreen}
+            options={({ navigation, route }) => ({
+              headerTitle: 'MES ROADTRIPS',
+              headerTitleAlign: 'center', // Centrer le titre
+              headerRight: () => (
+                <Icon
+                  name="logout"
+                  size={24}
+                  color="#007BFF"
+                  onPress={() => navigation.navigate('Home')}
+                  style={{ marginRight: 16 }}
+                />
+              ),
             headerLeft: () => (
               <Icon
                 name="refresh"
@@ -83,6 +86,8 @@ export default function App() {
         <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
       </Stack.Navigator>
+      <CompressionProgressIndicator />
     </NavigationContainer>
+    </CompressionProvider>
   );
 }

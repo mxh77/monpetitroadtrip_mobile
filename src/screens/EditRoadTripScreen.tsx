@@ -5,6 +5,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../../types';
+import { useCompression } from '../utils/CompressionContext';
+import { useImageCompression } from '../utils/imageCompression';
 
 type Props = StackScreenProps<RootStackParamList, 'EditRoadTrip'>;
 
@@ -36,6 +38,8 @@ type RoadTrip = {
 
 export default function EditRoadTripScreen({ route, navigation }: Props) {
   const { roadtripId } = route.params;
+  const { setCompressionState } = useCompression();
+  const imageCompressor = useImageCompression(setCompressionState);
   const [roadtrip, setRoadTrip] = useState<RoadTrip>({
     userId: '',
     name: '',
@@ -176,7 +180,23 @@ export default function EditRoadTripScreen({ route, navigation }: Props) {
       const selectedImageUri = result.assets[0].uri;
       console.log('Selected image URI:', selectedImageUri);
 
-      setRoadTrip({ ...roadtrip, thumbnail: { url: selectedImageUri, _id: '', type: 'thumbnail', fileId: '', createdAt: '' } });
+      // Compresser l'image thumbnail
+      const compressedImage = await imageCompressor.compressImage({
+        uri: selectedImageUri,
+        name: 'thumbnail.jpg',
+        mimeType: 'image/jpeg'
+      });
+
+      setRoadTrip({ 
+        ...roadtrip, 
+        thumbnail: { 
+          url: compressedImage.uri, 
+          _id: '', 
+          type: 'thumbnail', 
+          fileId: '', 
+          createdAt: '' 
+        } 
+      });
     }
   };
 

@@ -14,6 +14,8 @@ import { getTimeFromDate } from '../utils/dateUtils';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
 import { Step } from '../../types';
+import { useCompression } from '../utils/CompressionContext';
+import { useImageCompression } from '../utils/imageCompression';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -23,6 +25,8 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   const { step, refresh } = route.params;
   console.log('Step ID:', step.id);
   const [isLoading, setIsLoading] = useState(false);
+  const { setCompressionState } = useCompression();
+  const imageCompressor = useImageCompression(setCompressionState);
 
   const [addressInput, setAddressInput] = useState(step.address || '');
   const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
@@ -205,8 +209,24 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
 
     if (!pickerResult.canceled) {
       if (pickerResult.assets && pickerResult.assets.length > 0) {
-        setThumbnail({ uri: pickerResult.assets[0].uri });
-        setFormState((prevState) => ({ ...prevState, thumbnail: { url: pickerResult.assets[0].uri, type: 'image', name: 'thumbnail', fileId: '', createdAt: '' } }));
+        // Compresser l'image thumbnail
+        const compressedImage = await imageCompressor.compressImage({
+          uri: pickerResult.assets[0].uri,
+          name: 'thumbnail.jpg',
+          mimeType: 'image/jpeg'
+        });
+        
+        setThumbnail({ uri: compressedImage.uri });
+        setFormState((prevState) => ({ 
+          ...prevState, 
+          thumbnail: { 
+            url: compressedImage.uri, 
+            type: 'image', 
+            name: 'thumbnail', 
+            fileId: '', 
+            createdAt: '' 
+          } 
+        }));
       }
     }
   };

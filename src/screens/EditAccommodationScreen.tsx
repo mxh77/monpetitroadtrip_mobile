@@ -16,6 +16,8 @@ import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import InfosAccommodationTab from '../components/InfosAccommodationTab';
 import FilesTabEntity from '../components/FilesTabEntity';
 import PhotosTabAccommodation from '../components/PhotosTabAccommodation';
+import { useCompression } from '../utils/CompressionContext';
+import { useImageCompression } from '../utils/imageCompression';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -25,6 +27,8 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
   const isEditing = !!accommodation;
   // console.log('EditAccommodationScreen', step);
   const [isLoading, setIsLoading] = useState(false);
+  const { setCompressionState } = useCompression();
+  const imageCompressor = useImageCompression(setCompressionState);
 
   const [thumbnail, setThumbnail] = useState(accommodation?.thumbnail ? { uri: accommodation.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
@@ -201,8 +205,24 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
 
     if (!pickerResult.canceled) {
       if (pickerResult.assets && pickerResult.assets.length > 0) {
-        setThumbnail({ uri: pickerResult.assets[0].uri });
-        setFormState((prevState) => ({ ...prevState, thumbnail: { url: pickerResult.assets[0].uri, type: 'image', name: 'thumbnail', fileId: '', createdAt: '' } }));
+        // Compresser l'image thumbnail
+        const compressedImage = await imageCompressor.compressImage({
+          uri: pickerResult.assets[0].uri,
+          name: 'thumbnail.jpg',
+          mimeType: 'image/jpeg'
+        });
+        
+        setThumbnail({ uri: compressedImage.uri });
+        setFormState((prevState) => ({ 
+          ...prevState, 
+          thumbnail: { 
+            url: compressedImage.uri, 
+            type: 'image', 
+            name: 'thumbnail', 
+            fileId: '', 
+            createdAt: '' 
+          } 
+        }));
       }
     }
   };

@@ -4,11 +4,16 @@ import { FAB } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as DocumentPicker from 'expo-document-picker';
 import config from '../config';
+import { useCompression } from '../utils/CompressionContext';
+import { useImageCompression } from '../utils/imageCompression';
+import CompressionInfo from './CompressionInfo';
 
 const PhotosTabAccommodation = ({ accommodation, photos, setPhotos }) => {
     const [selected, setSelected] = useState<string[]>([]);
     const [selectionMode, setSelectionMode] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { setCompressionState } = useCompression();
+    const imageCompressor = useImageCompression(setCompressionState);
 
     useEffect(() => {
         if (accommodation && accommodation.photos) {
@@ -86,8 +91,12 @@ const PhotosTabAccommodation = ({ accommodation, photos, setPhotos }) => {
                 Alert.alert('Erreur', 'Aucune photo sélectionnée.');
                 return;
             }
+
+            // Compresser les images avant l'upload
+            const compressedFiles = await imageCompressor.compressImages(files);
+            
             const formData = new FormData();
-            files.forEach((file) => {
+            compressedFiles.forEach((file) => {
                 const { uri, name, mimeType } = file;
                 formData.append('photos', {
                     uri,
@@ -95,6 +104,7 @@ const PhotosTabAccommodation = ({ accommodation, photos, setPhotos }) => {
                     type: mimeType || 'image/jpeg',
                 } as any);
             });
+            
             setLoading(true);
             const response = await fetch(`${config.BACKEND_URL}/accommodations/${accommodation._id}/photos`, {
                 method: 'PATCH',
@@ -138,6 +148,7 @@ const PhotosTabAccommodation = ({ accommodation, photos, setPhotos }) => {
 
     return (
         <View style={styles.container}>
+            <CompressionInfo />
             {selectionMode && (
                 <View style={styles.selectionBar}>
                     <Text style={styles.selectionText}>{selected.length} sélectionnée(s)</Text>
