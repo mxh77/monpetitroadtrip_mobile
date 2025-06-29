@@ -15,6 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import InfosAccommodationTab from '../components/InfosAccommodationTab';
 import FilesTabEntity from '../components/FilesTabEntity';
+import PhotosTabAccommodation from '../components/PhotosTabAccommodation';
 
 type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -27,11 +28,13 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
 
   const [thumbnail, setThumbnail] = useState(accommodation?.thumbnail ? { uri: accommodation.thumbnail.url } : null);
   const [files, setFiles] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<any[]>([]);
 
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'infos', title: 'Infos' },
     { key: 'files', title: 'Fichiers' },
+    { key: 'photos', title: 'Photos' },
   ]);
 
   const [formState, setFormState] = useState<Accommodation>({
@@ -210,6 +213,8 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
         return <InfosAccommodationTab formState={formState} updateFormState={updateFormState} step={step} />;
       case 'files':
         return <FilesTabEntity entityType="accommodations" entity={accommodation} files={files} setFiles={setFiles} />;
+      case 'photos':
+        return <PhotosTabAccommodation accommodation={accommodation} photos={photos} setPhotos={setPhotos} />;
       default:
         return null;
     }
