@@ -60,6 +60,7 @@ export interface Activity {
   thumbnail?: File;
   photos?: File[];
   documents?: File[];
+  algoliaId?: string; // Ajout du champ optionnel pour la randonnée associée
 }
 
 export interface File {

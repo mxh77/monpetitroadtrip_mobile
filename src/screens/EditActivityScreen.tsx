@@ -56,6 +56,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     notes: activity?.notes || '',
     thumbnail: activity?.thumbnail || null,
     active: activity?.active || false, // Added the missing 'active' property
+    algoliaId: activity?.algoliaId || '', // Ajout du champ pour la randonnée associée
   });
 
   const updateFormState = useCallback((newState) => {

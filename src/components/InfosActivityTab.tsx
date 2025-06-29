@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { TextInput } from 'react-native-paper';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, Linking } from 'react-native';
+import { Button, TextInput } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { SectionList } from 'react-native';
@@ -11,6 +11,7 @@ import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { newDateUTC } from '../utils/dateUtils';
 import { Dropdown } from 'react-native-element-dropdown';
+import config from '../config';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -96,7 +97,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                 updateFormState({ startDateTime: updatedDate.toISOString() });
             } else if (type === 'startTime') {
                 const updatedTime = new Date(formState.startDateTime || utcDate);
-                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCHours(), 0, 0);
                 setFormStartTime(updatedTime);
                 updateFormState({ startDateTime: updatedTime.toISOString() });
             } else if (type === 'endDate') {
@@ -106,7 +107,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                 updateFormState({ endDateTime: updatedDate.toISOString() });
             } else if (type === 'endTime') {
                 const updatedTime = new Date(formState.endDateTime || utcDate);
-                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCMinutes(), 0, 0);
+                updatedTime.setUTCHours(utcDate.getUTCHours(), utcDate.getUTCHours(), 0, 0);
                 setFormEndTime(updatedTime);
                 updateFormState({ endDateTime: updatedTime.toISOString() });
             }
@@ -331,41 +332,176 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
         }
     }, [formState, updateFormState, addressInput]);
 
+    // --- Algolia integration ---
+    const [algoliaSuggestions, setAlgoliaSuggestions] = useState([]);
+    const [algoliaSearch, setAlgoliaSearch] = useState('');
+    const [algoliaSearchResults, setAlgoliaSearchResults] = useState([]);
+    const [algoliaLoading, setAlgoliaLoading] = useState(false);
+    const [algoliaError, setAlgoliaError] = useState('');
+    const [algoliaTrail, setAlgoliaTrail] = useState(null);
+
+    const getJwtToken = async () => '';
+
+    const fetchAlgoliaSuggestions = async () => {
+        setAlgoliaLoading(true);
+        setAlgoliaError('');
+        try {
+            const token = await getJwtToken();
+            const res = await fetch(`${config.BACKEND_URL}/activities/${formState._id}/search/algolia?hitsPerPage=5`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Erreur lors de la récupération des suggestions');
+            const data = await res.json();
+            setAlgoliaSuggestions(data.suggestions || []);
+        } catch (e) {
+            setAlgoliaError('Erreur lors de la récupération des suggestions');
+        } finally {
+            setAlgoliaLoading(false);
+        }
+    };
+
+    const searchAlgolia = async () => {
+        if (!algoliaSearch) return;
+        setAlgoliaLoading(true);
+        setAlgoliaError('');
+        try {
+            const token = await getJwtToken();
+            const res = await fetch(`${config.BACKEND_URL}/activities/search/algolia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ query: algoliaSearch, indexName: 'alltrails_primary_fr-FR', hitsPerPage: 10 }),
+            });
+            if (!res.ok) throw new Error('Erreur lors de la recherche');
+            const data = await res.json();
+            setAlgoliaSearchResults(data || []);
+        } catch (e) {
+            setAlgoliaError('Erreur lors de la recherche');
+        } finally {
+            setAlgoliaLoading(false);
+        }
+    };
+
+    const linkAlgolia = async (item) => {
+        setAlgoliaLoading(true);
+        setAlgoliaError('');
+        try {
+            const token = await getJwtToken();
+            const res = await fetch(`${config.BACKEND_URL}/activities/${formState._id}/link/algolia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ objectID: item.objectID, name: item.name, slug: item.slug, updateActivityName: false }),
+            });
+            if (!res.ok) throw new Error('Erreur lors de l’association');
+            updateFormState({ algoliaId: item.objectID });
+            setAlgoliaSuggestions([]);
+            setAlgoliaSearchResults([]);
+        } catch (e) {
+            setAlgoliaError('Erreur lors de l’association');
+        } finally {
+            setAlgoliaLoading(false);
+        }
+    };
+
+    const unlinkAlgolia = () => {
+        updateFormState({ algoliaId: '' });
+    };
+
+    // Affichage debug permanent en haut du composant
+    useEffect(() => {
+        console.log('algoliaId:', formState.algoliaId);
+    }, [formState.algoliaId]);
+
+    // Helper pour trouver le champ d'association Algolia
+    const getAlgoliaId = () => formState.algoliaId || '';
+
+    // Charger les infos de la randonnée associée si algoliaId existe
+    useEffect(() => {
+        const fetchAlgoliaTrail = async () => {
+            const algoliaId = getAlgoliaId();
+            if (!algoliaId) {
+                setAlgoliaTrail(null);
+                return;
+            }
+            setAlgoliaTrail(null);
+            try {
+                const token = await getJwtToken();
+                // On utilise la recherche manuelle Algolia par objectID
+                const res = await fetch(`${config.BACKEND_URL}/activities/search/algolia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ query: '', indexName: 'alltrails_primary_fr-FR', hitsPerPage: 1, filters: `objectID:${algoliaId}` }),
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    setAlgoliaTrail(data[0]);
+                }
+            } catch (e) {
+                // ignore
+            }
+        };
+        fetchAlgoliaTrail();
+    }, [formState]);
+
     return (
-        <View style={styles.container}>
-            <SectionList
-                sections={[
-                    { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
-                    { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
-                    { title: 'Dates', data: ['startDateTime', 'endDateTime'] },
-                    { title: 'Autres informations', data: ['price', 'notes'] },
-                ]}
-                renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
-                keyExtractor={(item) => item}
-                contentContainerStyle={styles.container}
-                keyboardShouldPersistTaps="handled"
-                renderSectionHeader={({ section: { title } }) => (
-                    <Text style={styles.sectionTitle}>{title}</Text>
-                )}
-            />
-            {showPicker.isVisible && (
-                <DateTimePicker
-                    value={pickerDate}
-                    mode={showPicker.type.includes('Time') ? 'time' : 'date'}
-                    display="default"
-                    timeZoneName='UTC'
-                    onChange={(event, selectedDate) => {
-                        if (event.type === 'set' && selectedDate) {
-                            console.log('Selected date:', selectedDate);
-                            handlePickerChange(showPicker.type, event, selectedDate);
-                        } else {
-                            setPickerDate(tempDate); // Reset to the original date if cancelled
-                            setShowPicker({ type: '', isVisible: false }); // Ensure picker is closed
-                        }
-                    }}
-                />
+        <SectionList
+            sections={[
+                { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
+                { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
+                { title: 'Dates', data: ['startDateTime', 'endDateTime'] },
+                { title: 'Autres informations', data: ['price', 'notes'] },
+            ]}
+            renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
+            keyExtractor={(item) => item}
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+            renderSectionHeader={({ section: { title } }) => (
+                <Text style={styles.sectionTitle}>{title}</Text>
             )}
-        </View>
+            ListFooterComponent={
+                <View style={{ marginTop: 30, padding: 10, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>Randonnée associée (Algolia)</Text>
+                    {getAlgoliaId() && typeof getAlgoliaId() === 'string' && getAlgoliaId().length > 0 ? (
+                        <View style={{ marginBottom: 10 }}>
+                            <Text>Randonnée liée : <Text style={{ fontWeight: 'bold' }}>{algoliaTrail?.name || getAlgoliaId()}</Text></Text>
+                            <Button mode="text" onPress={() => {
+                                let url = undefined;
+                                if (algoliaTrail?.url) {
+                                    url = algoliaTrail.url;
+                                } else if (algoliaTrail?.slug) {
+                                    url = `https://www.alltrails.com/fr/${algoliaTrail.slug}`;
+                                } else if (getAlgoliaId() && getAlgoliaId().startsWith('trail-')) {
+                                    url = `https://www.alltrails.com/fr/trail/${getAlgoliaId().replace('trail-', '')}`;
+                                }
+                                if (url) Linking.openURL(url);
+                            }} style={{ marginTop: 8 }}>Voir sur AllTrails</Button>
+                            <Button mode="outlined" onPress={unlinkAlgolia} style={{ marginTop: 8 }}>Dissocier</Button>
+                        </View>
+                    ) : (
+                        <>
+                            <Button mode="contained" onPress={fetchAlgoliaSuggestions} loading={algoliaLoading} style={{ marginBottom: 10 }}>Suggestions automatiques</Button>
+                            {algoliaSuggestions.length > 0 && (
+                                <View style={{ marginBottom: 10 }}>
+                                    {algoliaSuggestions.map((item) => (
+                                        <View key={item.objectID} style={{ marginBottom: 8, backgroundColor: '#fff', borderRadius: 6, padding: 8 }}>
+                                            <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+                                            <Text>Distance : {item.distanceKm ? `${item.distanceKm} km` : 'N/A'}</Text>
+                                            <Text>Note : {item.rating || 'N/A'} ({item.numReviews || 0} avis)</Text>
+                                            <Text>Lieu : {item.slug}</Text>
+                                            <Button mode="text" onPress={() => Linking.openURL(item.url)}>Voir sur AllTrails</Button>
+                                            <Button mode="contained" onPress={() => linkAlgolia(item)} style={{ marginTop: 4 }}>Associer</Button>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                            {algoliaError ? <Text style={{ color: 'red' }}>{algoliaError}</Text> : null}
+                        </>
+                    )}
+                </View>
+            }
+            ListFooterComponentStyle={{ paddingBottom: 40 }}
+        />
     );
 };
 
@@ -431,7 +567,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 8,
         backgroundColor: '#fff',
-      },
+    },
 });
 
 export default InfosActivityTab;
