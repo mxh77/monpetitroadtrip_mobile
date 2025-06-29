@@ -19,13 +19,43 @@ export default function StepStoryScreen({ route, navigation }: Props) {
     fetchStory();
   }, [stepId]);
 
+  // Récupère le récit existant ou le génère si absent
   const fetchStory = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Récupérer le token JWT (à adapter selon ton stockage)
       const token = await getJwtToken();
       const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 401) {
+        setError('Non autorisé. Veuillez vous reconnecter.');
+      } else if (response.status === 404) {
+        setError('Step non trouvé.');
+      } else if (response.status === 503) {
+        setError('Service IA indisponible. Réessayez plus tard.');
+      } else if (!response.ok) {
+        setError('Erreur serveur.');
+      } else {
+        const data = await response.json();
+        setStory(data.story);
+        setPrompt(data.prompt);
+      }
+    } catch (e) {
+      setError('Erreur réseau ou serveur.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Force la regénération du récit
+  const regenerateStory = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/regenerate`, {
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401) {
@@ -70,8 +100,12 @@ export default function StepStoryScreen({ route, navigation }: Props) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.title}>Récit généré</Text>
           <Text style={styles.story}>{story}</Text>
-          <Text style={styles.subtitle}>Prompt utilisé</Text>
-          <Text style={styles.prompt}>{prompt}</Text>
+          {/* <Text style={styles.subtitle}>Prompt utilisé</Text> */}
+          {/* <Text style={styles.prompt}>{prompt}</Text> */}
+          <TouchableOpacity onPress={regenerateStory} style={styles.regenerateButton}>
+            <Fontawesome5 name="redo" size={18} color="#fff" />
+            <Text style={styles.retryText}>Regénérer le récit</Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
     </View>
@@ -89,4 +123,5 @@ const styles = StyleSheet.create({
   errorText: { color: 'red', fontSize: 16, marginBottom: 16 },
   retryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#007BFF', padding: 10, borderRadius: 8 },
   retryText: { color: '#fff', marginLeft: 8 },
+  regenerateButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#28a745', padding: 10, borderRadius: 8, marginTop: 24, alignSelf: 'center' },
 });
