@@ -83,6 +83,7 @@ export type RootStackParamList = {
   RoadTrip: { roadtripId: string };
   EditRoadTrip: { roadtripId?: string };
   CreateStep: { roadtripId: string; refresh: () => void };
+  AddStepNaturalLanguage: { roadtripId: string; refresh: () => void };
   Step: {
     type: string;
     roadtripId: string;

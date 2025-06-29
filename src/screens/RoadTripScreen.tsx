@@ -1,6 +1,6 @@
 import config from '../config';
 import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
+import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
@@ -24,6 +24,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false); // État pour le rafraîchissement
   const [alertCount, setAlertCount] = useState(0);
   const [errors, setErrors] = useState<{ message: string, stepId: string, stepType: string }[]>([]);
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
 
   const fetchRoadtrip = async () => {
     setLoading(true); // Commencez le chargement
@@ -119,7 +120,22 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
   // Fonction pour gérer la navigation vers la page de création d'un nouveau step (CreateStepScreen)
   const handleAddStep = () => {
+    setShowAddStepModal(true);
+  }
+
+  // Fonction pour gérer l'ajout classique d'un step
+  const handleAddStepClassic = () => {
+    setShowAddStepModal(false);
     navigation.navigate('CreateStep', {
+      roadtripId,
+      refresh: fetchRoadtrip, // Passer la fonction de rafraîchissement
+    });
+  }
+
+  // Fonction pour gérer l'ajout via langage naturel
+  const handleAddStepNaturalLanguage = () => {
+    setShowAddStepModal(false);
+    navigation.navigate('AddStepNaturalLanguage', {
       roadtripId,
       refresh: fetchRoadtrip, // Passer la fonction de rafraîchissement
     });
@@ -295,6 +311,50 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         icon="plus"
         onPress={handleAddStep}
       />
+      
+      {/* Modal de choix d'ajout d'étape */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showAddStepModal}
+        onRequestClose={() => setShowAddStepModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Ajouter une étape</Text>
+            <Text style={styles.modalSubtitle}>Choisissez votre méthode d'ajout</Text>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleAddStepClassic}
+            >
+              <Icon name="edit" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Ajout classique</Text>
+                <Text style={styles.modalButtonSubtext}>Formulaire détaillé</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleAddStepNaturalLanguage}
+            >
+              <Icon name="magic" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Ajout via IA</Text>
+                <Text style={styles.modalButtonSubtext}>Décrivez votre étape en langage naturel</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowAddStepModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -482,5 +542,75 @@ const styles = StyleSheet.create({
   travelText: {
     fontSize: 14,
     color: 'gray',
+  },
+  // Styles pour le modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 12,
+    padding: 24,
+    minWidth: 300,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#666',
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
+  },
+  modalButtonIcon: {
+    marginRight: 12,
+  },
+  modalButtonTextContainer: {
+    flex: 1,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  modalButtonSubtext: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalCancelButton: {
+    marginTop: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#999',
   },
 });
