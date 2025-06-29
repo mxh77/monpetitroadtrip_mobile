@@ -22,6 +22,7 @@ import HikeSuggestionsScreen from './src/screens/HikeSuggestionsScreen';
 import ErrorsScreen from './src/screens/ErrorsScreen';
 import StepStoryScreen from './src/screens/StepStoryScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -80,6 +81,7 @@ export default function App() {
           options={{ title: 'Récit du Step' }}
         />
         <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

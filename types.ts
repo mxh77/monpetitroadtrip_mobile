@@ -116,13 +116,11 @@ export type RootStackParamList = {
     step: Step;
     accommodation: Accommodation;
     refresh: () => void;
-
   };
   EditActivity: {
     step: Step;
     activity: Activity;
     refresh: () => void;
-
   };
   HikeSuggestions: {
     step: Step;
@@ -135,6 +133,7 @@ export type RootStackParamList = {
   WebView: { url: string };
   Maps: undefined;
   StepStory: { stepId: string };
+  Settings: undefined;
 };
 
 // Types pour les props de navigation et de route

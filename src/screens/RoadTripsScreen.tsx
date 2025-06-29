@@ -59,6 +59,13 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   useEffect(() => {
     fetchRoadtrips();
     navigation.setParams({ refresh: fetchRoadtrips });
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginLeft: 16 }}>
+          <Icon name="settings" size={26} color="#007BFF" />
+        </TouchableOpacity>
+      ),
+    });
   }, []);
 
   const handleAddRoadtrip = () => {
