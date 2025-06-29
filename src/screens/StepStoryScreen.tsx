@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types';
@@ -14,15 +14,25 @@ export default function StepStoryScreen({ route, navigation }: Props) {
   const [story, setStory] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null); // pending, processing, done, error
+  const [jobId, setJobId] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    fetchStory();
+    checkOrGenerateStory();
+    return () => {
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+    };
   }, [stepId]);
 
-  // Récupère le récit existant ou le génère si absent
-  const fetchStory = async () => {
+  // Vérifie s'il existe déjà un récit, sinon lance la génération asynchrone
+  const checkOrGenerateStory = async () => {
     setLoading(true);
     setError(null);
+    setStory(null);
+    setPrompt(null);
+    setStatus(null);
+    setJobId(null);
     try {
       const token = await getJwtToken();
       const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story`, {
@@ -30,32 +40,45 @@ export default function StepStoryScreen({ route, navigation }: Props) {
       });
       if (response.status === 401) {
         setError('Non autorisé. Veuillez vous reconnecter.');
+        setLoading(false);
       } else if (response.status === 404) {
-        setError('Step non trouvé.');
+        // Pas de récit, on lance la génération asynchrone
+        fetchStoryAsync();
       } else if (response.status === 503) {
         setError('Service IA indisponible. Réessayez plus tard.');
+        setLoading(false);
       } else if (!response.ok) {
         setError('Erreur serveur.');
+        setLoading(false);
       } else {
         const data = await response.json();
-        setStory(data.story);
-        setPrompt(data.prompt);
+        if (data.story) {
+          setStory(data.story);
+          setPrompt(data.prompt);
+          setLoading(false);
+        } else {
+          // Pas de récit malgré 200, on lance la génération asynchrone
+          fetchStoryAsync();
+        }
       }
     } catch (e) {
       setError('Erreur réseau ou serveur.');
-    } finally {
       setLoading(false);
     }
   };
 
-  // Force la regénération du récit
-  const regenerateStory = async () => {
+  // Lancer la génération asynchrone et commencer le polling
+  const fetchStoryAsync = async () => {
     setLoading(true);
     setError(null);
+    setStory(null);
+    setPrompt(null);
+    setStatus(null);
+    setJobId(null);
     try {
       const token = await getJwtToken();
-      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/regenerate`, {
-        method: 'PATCH',
+      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/async`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401) {
@@ -68,14 +91,53 @@ export default function StepStoryScreen({ route, navigation }: Props) {
         setError('Erreur serveur.');
       } else {
         const data = await response.json();
-        setStory(data.story);
-        setPrompt(data.prompt);
+        setJobId(data.jobId);
+        setStatus(data.status);
+        pollStatus(data.jobId);
       }
     } catch (e) {
       setError('Erreur réseau ou serveur.');
-    } finally {
+    }
+  };
+
+  // Polling du statut du job
+  const pollStatus = async (jobId: string) => {
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/status/${jobId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        if (response.status === 404) setError('Job non trouvé.');
+        else setError('Erreur lors du suivi du job.');
+        setLoading(false);
+        return;
+      }
+      const data = await response.json();
+      setStatus(data.status);
+      if (data.status === 'done') {
+        setStory(data.result.story);
+        setPrompt(data.result.prompt);
+        setLoading(false);
+      } else if (data.status === 'error') {
+        setError(data.error || 'Erreur lors de la génération du récit.');
+        setLoading(false);
+      } else {
+        // pending ou processing
+        pollingRef.current = setTimeout(() => pollStatus(jobId), 2000);
+      }
+    } catch (e) {
+      setError('Erreur réseau ou serveur pendant le suivi du job.');
       setLoading(false);
     }
+  };
+
+  // Regénérer = relancer la génération asynchrone (et effacer l'ancien récit)
+  const regenerateStory = () => {
+    if (pollingRef.current) clearTimeout(pollingRef.current);
+    setStory(null);
+    setPrompt(null);
+    fetchStoryAsync();
   };
 
   // À adapter selon ton stockage JWT (AsyncStorage, SecureStore, etc.)
@@ -86,12 +148,19 @@ export default function StepStoryScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#007BFF" style={{ marginTop: 40 }} />
+      {loading || status === 'pending' || status === 'processing' ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#007BFF" style={{ marginTop: 40 }} />
+          <Text style={{ marginTop: 24, fontSize: 16, color: '#555' }}>
+            {status === 'pending' || status === 'processing'
+              ? 'Génération du récit en cours...'
+              : 'Chargement...'}
+          </Text>
+        </View>
       ) : error ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={fetchStory} style={styles.retryButton}>
+          <TouchableOpacity onPress={regenerateStory} style={styles.retryButton}>
             <Fontawesome5 name="redo" size={18} color="#fff" />
             <Text style={styles.retryText}>Réessayer</Text>
           </TouchableOpacity>
