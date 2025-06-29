@@ -120,7 +120,10 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
         style={styles.triangleButtonContainer}
         onPress={() => navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep })}
       >
-        <TriangleCornerTopRight style={styles.triangleButton} />
+        <TriangleCornerTopRight
+          style={styles.triangleButton}
+          onPress={() => navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep })}
+        />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.triangleButtonContainerTopLeft}

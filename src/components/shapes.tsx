@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -9,13 +9,16 @@ export const TriangleCorner = ({ style }) => {
 };
 
 // Composant TriangleCornerTopRight
-export const TriangleCornerTopRight = ({ style }) => {
+export const TriangleCornerTopRight = ({ style, icon = 'plus', iconLib = 'Fontawesome5', iconColor = 'white', iconSize = 20, onPress }) => {
+  const IconComponent = iconLib === 'Ionicons' ? Ionicons : Fontawesome5;
   return (
     <View style={style}>
-      <TriangleCorner style={styles.triangleCornerTopRight} />
-      <View style={styles.triangleTopRightButtonTextContainer}>
-        <Fontawesome5 name="plus" size={20} color="white" />
-      </View>
+      <TouchableOpacity onPress={onPress} style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}>
+        <TriangleCorner style={styles.triangleCornerTopRight} />
+        <View style={styles.triangleTopRightButtonTextContainer}>
+          <IconComponent name={icon} size={iconSize} color={iconColor} />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 };

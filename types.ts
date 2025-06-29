@@ -134,6 +134,7 @@ export type RootStackParamList = {
   };
   WebView: { url: string };
   Maps: undefined;
+  StepStory: { stepId: string };
 };
 
 // Types pour les props de navigation et de route

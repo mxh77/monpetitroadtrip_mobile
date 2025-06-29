@@ -109,7 +109,10 @@ const Accommodations = ({ step, navigation, fetchStep ,toggleActiveStatusAccommo
         style={styles.triangleButtonContainer}
         onPress={() => navigation.navigate('EditAccommodation', { step, accommodation: null, refresh: fetchStep })}
       >
-        <TriangleCornerTopRight style={styles.triangleButton} />
+        <TriangleCornerTopRight
+          style={styles.triangleButton}
+          onPress={() => navigation.navigate('EditAccommodation', { step, accommodation: null, refresh: fetchStep })}
+        />
       </TouchableOpacity>
     </View>
   );

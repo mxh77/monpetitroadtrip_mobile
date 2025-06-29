@@ -11,6 +11,7 @@ import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import GeneralInfo from '../components/GeneralInfo';
 import Accommodations from '../components/Accommodations';
 import Activities from '../components/Activities';
+import { TriangleCornerTopRight } from '../components/shapes';
 
 type Props = StackScreenProps<RootStackParamList, 'Step'>;
 
@@ -414,7 +415,24 @@ export default function StepScreen({ route, navigation }: Props) {
     };
 
     const renderScene = SceneMap({
-        infos: () => <GeneralInfo step={step} navigation={navigation} fetchStep={fetchStep} />,
+        infos: () => (
+            <View style={{ flex: 1 }}>
+                <GeneralInfo step={step} navigation={navigation} fetchStep={fetchStep} />
+                <TouchableOpacity
+                    style={styles.triangleButtonContainer}
+                    onPress={() => navigation.navigate('StepStory', { stepId: step.id })}
+                >
+                    <TriangleCornerTopRight
+                        style={styles.triangleButton}
+                        icon="book-open"
+                        iconLib="Fontawesome5"
+                        iconColor="#fff"
+                        iconSize={20}
+                        onPress={() => navigation.navigate('StepStory', { stepId: step.id })}
+                    />
+                </TouchableOpacity>
+            </View>
+        ),
         activities: () => type === 'Stage' ? <Activities step={step} navigation={navigation} fetchStep={fetchStep} toggleActiveStatusActivity={toggleActiveStatusActivity} /> : null,
         accommodations: () => type === 'Stage' ? <Accommodations step={step} navigation={navigation} fetchStep={fetchStep} toggleActiveStatusAccommodation={toggleActiveStatusAccommodation} /> : null,
         //planning: () => <Planning step={step} handleEventChange={handleEventChange} />,
