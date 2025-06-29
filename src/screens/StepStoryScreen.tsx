@@ -25,7 +25,7 @@ export default function StepStoryScreen({ route, navigation }: Props) {
     try {
       // Récupérer le token JWT (à adapter selon ton stockage)
       const token = await getJwtToken();
-      const response = await fetch(`${config.BACKEND_URL}/step-story/${stepId}`, {
+      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401) {

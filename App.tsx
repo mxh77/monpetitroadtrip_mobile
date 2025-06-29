@@ -20,6 +20,7 @@ import EditAccommodationScreen from './src/screens/EditAccommodationScreen';
 import EditActivityScreen from './src/screens/EditActivityScreen';
 import HikeSuggestionsScreen from './src/screens/HikeSuggestionsScreen';
 import ErrorsScreen from './src/screens/ErrorsScreen';
+import StepStoryScreen from './src/screens/StepStoryScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -73,6 +74,11 @@ export default function App() {
         <Stack.Screen name="EditAccommodation" component={EditAccommodationScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="EditActivity" component={EditActivityScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="HikeSuggestions" component={HikeSuggestionsScreen} options={{ title: 'Suggestions de Randonnées' }} />
+        <Stack.Screen
+          name="StepStory"
+          component={StepStoryScreen}
+          options={{ title: 'Récit du Step' }}
+        />
         <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
       </Stack.Navigator>
     </NavigationContainer>
