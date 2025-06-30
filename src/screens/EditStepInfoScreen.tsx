@@ -38,6 +38,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   // États pour les suggestions d'adresse
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   
   // États pour le positionnement de la liste d'adresses
   const [addressInputLayout, setAddressInputLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
@@ -68,8 +69,29 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   const googlePlacesRef = useRef(null);
   const addressInputContainerRef = useRef<View>(null);
 
+  // Effet pour debounce la recherche d'adresse
+  useEffect(() => {
+    // Ne déclencher la recherche que si le champ d'adresse est focalisé
+    if (!isAddressInputFocused) {
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      if (addressInput.length >= 2) {
+        fetchSuggestions(addressInput);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300); // Délai de 300ms
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [addressInput, isAddressInputFocused]);
+
   // Fonction pour obtenir les suggestions
-  const fetchSuggestions = async (input) => {
+  const fetchSuggestions = async (input: string) => {
     if (input.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -92,11 +114,20 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
 
   // Animation d'entrée
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    // Désactiver l'animation native sur Android pour éviter l'erreur de thread
+    if (Platform.OS === 'android') {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: false, // Important: false sur Android pour éviter les problèmes de thread
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
   }, []);
 
   // Animation de feedback pour la sauvegarde
@@ -208,13 +239,6 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
         setFormDepartureTime(parseISO(formState.departureDateTime));
       }
     }, [formState.arrivalDateTime, formState.departureDateTime]);
-
-  useEffect(() => {
-    if (addressInput !== formState.address) {
-      console.log('Updating formState.address ', formState.address, 'with addressInput:', addressInput);
-      setFormState((prevState) => ({ ...prevState, address: addressInput }));
-    }
-  }, [addressInput, formState.address]);
 
   const handlePickerChange = (type: string, event: any, selectedDate?: Date) => {
     if (event.type === 'dismissed') {
@@ -362,9 +386,9 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
                   onChangeText={(text) => {
                     setAddressInput(text);
                     setFormState((prevState) => ({ ...prevState, address: text }));
-                    fetchSuggestions(text);
                   }}
                   onFocus={() => {
+                    setIsAddressInputFocused(true);
                     // Mesurer la position du champ pour positionner la liste
                     addressInputContainerRef.current?.measureInWindow((x, y, width, height) => {
                       setAddressInputLayout({ x, y, width, height });
@@ -375,13 +399,15 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
                     }
                   }}
                   onBlur={() => {
-                    // On utilise un petit délai pour permettre au clic sur une suggestion d'être enregistré
+                    setIsAddressInputFocused(false);
                     setTimeout(() => {
                       if (showSuggestions) {
                         setShowSuggestions(false);
+                        setSuggestions([]);
                       }
                     }, 200);
                   }}
+                  blurOnSubmit={false}
                   style={styles.modernInput}
                   mode="outlined"
                   placeholder="Rechercher une adresse..."
@@ -415,7 +441,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
                       style={[
                         styles.suggestionsContainer,
                         {
-                          top: addressInputLayout.y + addressInputLayout.height,
+                          top: addressInputLayout.y + addressInputLayout.height + 50, // Ajouter un petit espacement
                           left: addressInputLayout.x,
                           width: addressInputLayout.width,
                         }
@@ -536,19 +562,41 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       case 'notes':
         return (
           <Card style={styles.fieldCard} elevation={2}>
-            <Card.Content style={styles.cardContent}>
+            <Card.Content 
+              style={styles.cardContent}
+              onStartShouldSetResponder={() => {
+                // Fermer le DateTimePicker si on touche la carte des notes
+                if (showPicker.isVisible) {
+                  setShowPicker({ type: '', isVisible: false });
+                }
+                return false; // Permettre aux autres composants de gérer l'événement
+              }}
+            >
               <View style={styles.fieldHeader}>
                 <Icon name="sticky-note" size={20} color="#9B59B6" style={styles.fieldIcon} />
                 <Text style={styles.fieldLabel}>Notes</Text>
               </View>
               <TextInput
                 value={formState.notes}
-                onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
-                style={[styles.modernInput, styles.notesContainer]}
+                onChangeText={(text) => {
+                  // Forcer la fermeture du DateTimePicker si il est ouvert
+                  if (showPicker.isVisible) {
+                    setShowPicker({ type: '', isVisible: false });
+                  }
+                  setFormState((prevState) => ({ ...prevState, notes: text }));
+                }}
+                onFocus={() => {
+                  // Forcer la fermeture du DateTimePicker si il est ouvert
+                  if (showPicker.isVisible) {
+                    setShowPicker({ type: '', isVisible: false });
+                  }
+                }}
+                onBlur={() => {
+                  // Champ Notes désfocalisé
+                }}
+                style={[styles.modernInput, { minHeight: 120 }]}
                 mode="outlined"
                 placeholder="Ajoutez vos notes, remarques ou informations importantes..."
-                multiline
-                numberOfLines={5}
                 outlineColor="#E8E8E8"
                 activeOutlineColor="#9B59B6"
                 theme={{
@@ -557,6 +605,11 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
                     outline: '#E8E8E8',
                   }
                 }}
+                multiline={true}
+                scrollEnabled={false}
+                blurOnSubmit={false}
+                returnKeyType="default"
+                textAlignVertical="top"
               />
             </Card.Content>
           </Card>
@@ -619,12 +672,32 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
         keyExtractor={(item, index) => `${item.type}-${index}`}
         style={{ flex: 1, backgroundColor: '#F5F7FA' }}
         contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
-        nestedScrollEnabled={true}
+        nestedScrollEnabled={false}
+        keyboardDismissMode="on-drag"
+        onScrollBeginDrag={() => {
+          // Fermer les suggestions quand l'utilisateur commence à faire défiler
+          if (showSuggestions) {
+            setShowSuggestions(false);
+            setSuggestions([]);
+          }
+        }}
+        removeClippedSubviews={false}
       />
     );
   };
+
+  // Fermer les suggestions d'adresse si on touche en dehors du champ adresse
+  useEffect(() => {
+    const dismissSuggestions = Keyboard.addListener('keyboardDidHide', () => {
+      setShowSuggestions(false);
+      setSuggestions([]);
+    });
+    return () => {
+      dismissSuggestions.remove();
+    };
+  }, []);
 
   return (
     <KeyboardAvoidingView
@@ -646,18 +719,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       </Modal>
       
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <TouchableOpacity 
-          style={{ flex: 1 }}
-          activeOpacity={1}
-          onPress={() => {
-            if (showSuggestions) {
-              setShowSuggestions(false);
-              setSuggestions([]);
-            }
-          }}
-        >
-          {renderContent()}
-        </TouchableOpacity>
+        {renderContent()}
       </Animated.View>
       
       {showPicker.isVisible && (
