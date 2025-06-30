@@ -17,6 +17,8 @@ const getActivityTypeIcon = (activityType?: string): string => {
       return '🛒';
     case 'Visite':
       return '🏛️';
+    case 'Transport':
+      return '🚐';
     case 'Autre':
       return '📍';
     default:
@@ -105,7 +107,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
                   </Text>
                 </View>
               </View>
-              
+
               {/* Affichage du type d'activité */}
               {activity.type && (
                 <View style={{ marginTop: 8, paddingVertical: 4 }}>
@@ -173,7 +175,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
       >
         <TriangleCornerTopLeft style={styles.triangleButtonTopLeft} />
       </TouchableOpacity>
-      
+
       {/* Modal de choix pour l'ajout d'activité */}
       <Modal
         animationType="fade"
@@ -185,7 +187,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Ajouter une activité</Text>
             <Text style={styles.modalSubtitle}>Comment souhaitez-vous ajouter votre activité ?</Text>
-            
+
             <TouchableOpacity
               style={styles.modalButton}
               onPress={handleAddActivityClassic}
@@ -196,7 +198,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
                 <Text style={styles.modalButtonSubtext}>Formulaire détaillé</Text>
               </View>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.modalButton}
               onPress={handleAddActivityNaturalLanguage}
@@ -207,7 +209,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
                 <Text style={styles.modalButtonSubtext}>Décrivez votre activité en langage naturel</Text>
               </View>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.modalCancelButton}
               onPress={() => setShowAddActivityModal(false)}
