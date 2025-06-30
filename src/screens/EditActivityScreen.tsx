@@ -7,6 +7,7 @@ import { RootStackParamList, Activity } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA, getTimeFromDate, formatTimeHHMM } from '../utils/dateUtils';
+import { handleSmartNavigation } from '../utils/utils';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { format, parseISO, set } from 'date-fns';
@@ -24,7 +25,7 @@ type Props = StackScreenProps<RootStackParamList, 'EditActivity'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 export default function EditActivityScreen({ route, navigation }: Props) {
-  const { step, activity, refresh } = route.params;
+  const { step, activity, refresh, returnTo, returnToTab } = route.params;
   const isEditing = !!activity;
   // console.log('Activity:', activity);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +119,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
           refresh();
         }
 
-        navigation.goBack();
+        handleSmartNavigation(navigation, returnTo, returnToTab);
       } else {
         Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
       }
@@ -160,7 +161,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
                   refresh();
                 }
 
-                navigation.goBack();
+                handleSmartNavigation(navigation, returnTo, returnToTab);
               } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression.');
               }

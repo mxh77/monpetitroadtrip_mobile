@@ -11,6 +11,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getTimeFromDate } from '../utils/dateUtils';
+import { handleSmartNavigation } from '../utils/utils';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
 import { Step } from '../../types';
@@ -22,7 +23,7 @@ const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 type Props = StackScreenProps<RootStackParamList, 'EditStepInfo'>;
 
 export default function EditStepInfoScreen({ route, navigation }: Props) {
-  const { step, refresh } = route.params;
+  const { step, refresh, returnTo, returnToTab } = route.params;
   console.log('Step ID:', step.id);
   const [isLoading, setIsLoading] = useState(false);
   const { setCompressionState } = useCompression();
@@ -90,7 +91,7 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
           refresh();
         }
 
-        navigation.goBack();
+        handleSmartNavigation(navigation, returnTo, returnToTab);
       } else {
         Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
       }

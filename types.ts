@@ -80,7 +80,7 @@ export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   RoadTrips: { refresh?: () => void };
-  RoadTrip: { roadtripId: string };
+  RoadTrip: { roadtripId: string; returnToTab?: string; initialTab?: string };
   EditRoadTrip: { roadtripId?: string };
   CreateStep: { roadtripId: string; refresh: () => void };
   AddStepNaturalLanguage: { roadtripId: string; refresh: () => void };
@@ -105,10 +105,14 @@ export type RootStackParamList = {
   EditStepInfo: {
     step: Step;
     refresh: () => void;
+    returnTo?: string; // D'où vient l'utilisateur (ex: 'Planning')
+    returnToTab?: string; // Onglet de retour (ex: 'Planning')
   };
   EditStageInfo: {
     stage: Step;
     refresh: () => void;
+    returnTo?: string; // D'où vient l'utilisateur (ex: 'Planning')
+    returnToTab?: string; // Onglet de retour (ex: 'Planning')
   };
   EditStopInfo: {
     stop: Step;
@@ -118,11 +122,15 @@ export type RootStackParamList = {
     step: Step;
     accommodation: Accommodation;
     refresh: () => void;
+    returnTo?: string; // D'où vient l'utilisateur (ex: 'Planning')
+    returnToTab?: string; // Onglet de retour (ex: 'Planning')
   };
   EditActivity: {
     step: Step;
     activity: Activity;
     refresh: () => void;
+    returnTo?: string; // D'où vient l'utilisateur (ex: 'Planning')
+    returnToTab?: string; // Onglet de retour (ex: 'Planning')
   };
   AddActivityNaturalLanguage: {
     roadtripId: string;

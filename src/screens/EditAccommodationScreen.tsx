@@ -6,6 +6,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Accommodation } from '../../types';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA, getTimeFromDate, formatTimeHHMM } from '../utils/dateUtils';
+import { handleSmartNavigation } from '../utils/utils';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { format, parseISO, set } from 'date-fns';
@@ -23,7 +24,7 @@ type Props = StackScreenProps<RootStackParamList, 'EditAccommodation'>;
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 export default function EditAccommodationScreen({ route, navigation }: Props) {
-  const { step, accommodation, refresh } = route.params;
+  const { step, accommodation, refresh, returnTo, returnToTab } = route.params;
   const isEditing = !!accommodation;
   // console.log('EditAccommodationScreen', step);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +113,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
           refresh();
         }
 
-        navigation.goBack();
+        handleSmartNavigation(navigation, returnTo, returnToTab);
       } else {
         Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
       }
@@ -154,7 +155,7 @@ export default function EditAccommodationScreen({ route, navigation }: Props) {
                   refresh();
                 }
 
-                navigation.goBack();
+                handleSmartNavigation(navigation, returnTo, returnToTab);
               } else {
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression.');
               }

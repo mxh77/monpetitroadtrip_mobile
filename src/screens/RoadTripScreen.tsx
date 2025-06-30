@@ -1,30 +1,91 @@
 import config from '../config';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 import { RootStackParamList, Roadtrip, File } from '../../types';
 import { FAB } from 'react-native-paper'; // Importer le bouton flottant
 import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swipeable de react-native-gesture-handler
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
 import Timetable from '../components/timetable/src'; // Importer Timetable
+import AdvancedPlanning from '../components/AdvancedPlanning'; // Importer le nouveau planning
 import rvIcon from '../../assets/icones/RV/rv_32.png';
 import { getMinStartDateTime } from '../utils/dateUtils';
 import { RefreshControl } from 'react-native-gesture-handler';
+import { useNavigationContext } from '../utils/NavigationContext';
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
 const Tab = createBottomTabNavigator();
 
 export default function RoadTripScreen({ route, navigation }: Props) {
-  const { roadtripId } = route.params;
+  const { roadtripId, initialTab } = route.params || {};
   const [roadtrip, setRoadtrip] = useState<Roadtrip | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // État pour le rafraîchissement
   const [alertCount, setAlertCount] = useState(0);
   const [errors, setErrors] = useState<{ message: string, stepId: string, stepType: string }[]>([]);
   const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [dragSnapInterval, setDragSnapInterval] = useState(15); // Pas de déplacement en minutes (défaut: 15min)
+  const [currentTab, setCurrentTab] = useState(initialTab || 'Liste des étapes');
+  
+  // Contexte de navigation pour gérer le retour automatique au Planning
+  const { pendingPlanningNavigation, clearPendingNavigation } = useNavigationContext();
+  
+  // Déterminer l'onglet initial (par défaut: Liste des étapes, ou Planning si spécifié)
+  const [tabInitialRouteName] = useState(initialTab || 'Liste des étapes');
+
+  // Gérer la navigation automatique vers l'onglet Planning
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 RoadTripScreen focus, pendingPlanningNavigation:', pendingPlanningNavigation);
+      if (pendingPlanningNavigation) {
+        console.log('🎯 Navigation automatique vers l\'onglet Planning');
+        // Utiliser setTimeout pour laisser le temps au composant de se rendre
+        setTimeout(() => {
+          if (navigation) {
+            // Reset vers RoadTrip avec onglet Planning
+            navigation.navigate('RoadTrip', { 
+              roadtripId, 
+              initialTab: 'Planning' 
+            });
+          }
+          clearPendingNavigation();
+        }, 100);
+      }
+    }, [pendingPlanningNavigation, roadtripId, navigation, clearPendingNavigation])
+  );
+
+  // Charger les paramètres utilisateur au démarrage
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  // Log pour debug
+  useEffect(() => {
+    console.log('🔄 RoadTripScreen - Paramètres reçus:', { roadtripId, initialTab, tabInitialRouteName });
+  }, [roadtripId, initialTab, tabInitialRouteName]);
+
+  const getJwtToken = async () => '';
+
+  const loadUserSettings = async () => {
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/settings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const userDragSnapInterval = typeof data.dragSnapInterval === 'number' ? data.dragSnapInterval : 15;
+        setDragSnapInterval(userDragSnapInterval);
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des paramètres utilisateur:', error);
+      // Garder la valeur par défaut en cas d'erreur
+    }
+  };
 
   const fetchRoadtrip = async () => {
     setLoading(true); // Commencez le chargement
@@ -38,6 +99,20 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       console.log('Alertes:', alerts);
       setAlertCount(alerts);
       setErrors(errorMessages);
+
+      // Vérifier les adresses manquantes
+      const missingAddresses = checkMissingAddresses(data.steps);
+      if (missingAddresses.length > 0) {
+        console.warn('Adresses manquantes détectées:', missingAddresses);
+        // Afficher une alerte pour informer l'utilisateur
+        setTimeout(() => {
+          Alert.alert(
+            'Adresses manquantes détectées',
+            `${missingAddresses.length} élément(s) n'ont pas d'adresse renseignée. Cela peut causer des erreurs lors du calcul d'itinéraires. Consultez les détails de vos étapes pour les compléter.`,
+            [{ text: 'OK' }]
+          );
+        }, 1000); // Délai pour éviter les conflits avec d'autres alertes
+      }
 
       // Filtrer les données pour ne conserver que les champs nécessaires
       const filteredData: Roadtrip = {
@@ -63,8 +138,59 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
     } catch (error) {
       console.error('Erreur lors de la récupération du roadtrip:', error);
+      handleBackendError(error, 'lors de la récupération du roadtrip');
     } finally {
       setLoading(false); // Terminez le chargement
+    }
+  };
+
+  // Fonction de refresh silencieux (sans loading) pour éviter le changement d'onglet
+  const fetchRoadtripSilent = async () => {
+    try {
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
+      const data = await response.json();
+
+      // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
+      const { alerts, errorMessages } = checkDateConsistency(data);
+      console.log('Alertes (refresh silencieux):', alerts);
+      setAlertCount(alerts);
+      setErrors(errorMessages);
+
+      // Vérifier les adresses manquantes (mode silencieux)
+      const missingAddresses = checkMissingAddresses(data.steps);
+      if (missingAddresses.length > 0) {
+        console.warn('Adresses manquantes détectées (refresh silencieux):', missingAddresses);
+      }
+
+      // Filtrer les données pour ne conserver que les champs nécessaires
+      const filteredData: Roadtrip = {
+        idRoadtrip: data._id,
+        name: data.name,
+        steps: data.steps.map((step: any) => ({
+          id: step._id,
+          type: step.type,
+          name: step.name,
+          arrivalDateTime: step.arrivalDateTime,
+          departureDateTime: step.departureDateTime,
+          thumbnail: step.thumbnail,
+          travelTimePreviousStep: step.travelTimePreviousStep,
+          distancePreviousStep: step.distancePreviousStep,
+          travelTimeNote: step.travelTimeNote,
+          accommodations: step.accommodations || [],
+          activities: step.activities || [],
+        })),
+      };
+
+      setRoadtrip(filteredData);
+      console.log('Roadtrip récupéré (refresh silencieux):', filteredData);
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération du roadtrip (refresh silencieux):', error);
+      // En mode silencieux, on ne montre pas d'alerte sauf pour les erreurs d'adresses critiques
+      if (error?.message?.includes('Origin and destination must be provided') || 
+          (typeof error === 'string' && error.includes('Origin and destination must be provided'))) {
+        handleBackendError(error, 'lors du rafraîchissement');
+      }
     }
   };
 
@@ -89,12 +215,13 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return unsubscribe;
   }, [navigation]);
 
-  // Afficher une icône de notification en haut à droite
+  // Afficher une icône de notification et paramètres en haut à droite
   useEffect(() => {
     console.log('Mise à jour de la barre de navigation');
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+          {/* Alertes existantes */}
           {alertCount > 0 && (
             <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
@@ -152,12 +279,15 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
       if (response.ok) {
         fetchRoadtrip(); // Recharger les données
-        Alert.alert('Succès', 'Le step a été supprimé.');
+        Alert.alert('Succès', 'L\'étape a été supprimée.');
       } else {
-        Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression du step.');
+        const errorText = await response.text();
+        console.error('Erreur de suppression:', errorText);
+        handleBackendError(`Erreur ${response.status}: ${errorText}`, 'lors de la suppression');
       }
     } catch (error) {
-      Alert.alert('Erreur', 'Une erreur est survenue. Veuillez réessayer.');
+      console.error('Erreur lors de la suppression:', error);
+      handleBackendError(error, 'lors de la suppression');
     }
   }
 
@@ -185,6 +315,107 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     setRefreshing(true); // Démarrer l'animation de rafraîchissement
     await fetchRoadtrip(); // Recharger les données
     setRefreshing(false); // Arrêter l'animation de rafraîchissement
+  };
+
+  // Fonction pour vérifier les adresses manquantes
+  const checkMissingAddresses = (steps: any[]) => {
+    const missingAddresses = [];
+    
+    steps.forEach(step => {
+      // Vérifier l'adresse du step lui-même
+      if (!step.address || step.address.trim() === '') {
+        missingAddresses.push({
+          type: 'step',
+          name: step.name,
+          id: step.id
+        });
+      }
+      
+      // Vérifier les activités
+      step.activities?.forEach(activity => {
+        if (!activity.address || activity.address.trim() === '') {
+          missingAddresses.push({
+            type: 'activity',
+            name: activity.name,
+            id: activity._id,
+            stepName: step.name
+          });
+        }
+      });
+      
+      // Vérifier les hébergements
+      step.accommodations?.forEach(accommodation => {
+        if (!accommodation.address || accommodation.address.trim() === '') {
+          missingAddresses.push({
+            type: 'accommodation',
+            name: accommodation.name,
+            id: accommodation._id,
+            stepName: step.name
+          });
+        }
+      });
+    });
+    
+    return missingAddresses;
+  };
+
+  // Fonction pour gérer les erreurs backend et les afficher de manière conviviale
+  const handleBackendError = (error: any, context: string = '') => {
+    console.error(`Erreur backend ${context}:`, error);
+    
+    let title = 'Erreur';
+    let message = 'Une erreur est survenue. Veuillez réessayer.';
+    
+    if (typeof error === 'string') {
+      if (error.includes('Origin and destination must be provided')) {
+        title = 'Adresses manquantes';
+        message = 'Impossible de calculer l\'itinéraire car certaines étapes n\'ont pas d\'adresse renseignée.\n\nVeuillez compléter les adresses dans les détails de vos étapes (icône de localisation).';
+      } else if (error.includes('Network request failed')) {
+        title = 'Problème de connexion';
+        message = 'Vérifiez votre connexion internet et réessayez.';
+      } else if (error.includes('404')) {
+        title = 'Ressource introuvable';
+        message = 'L\'élément demandé n\'existe plus ou a été supprimé.';
+      } else if (error.includes('500')) {
+        title = 'Erreur serveur';
+        message = 'Le serveur rencontre des difficultés. Veuillez réessayer dans quelques instants.';
+      } else {
+        message = error;
+      }
+    } else if (error.message) {
+      if (error.message.includes('Origin and destination must be provided')) {
+        title = 'Adresses manquantes';
+        message = 'Certaines étapes n\'ont pas d\'adresse, ce qui empêche le calcul des itinéraires.\n\nConseil : Vérifiez et complétez les adresses de vos étapes.';
+      } else {
+        message = error.message;
+      }
+    }
+    
+    Alert.alert(title, message, [{ text: 'OK' }]);
+  };
+
+  // Fonction pour valider les données avant les appels API critiques
+  const validateDataForApiCall = (steps: any[], actionDescription: string = 'cette action') => {
+    const missingAddresses = checkMissingAddresses(steps);
+    
+    if (missingAddresses.length > 0) {
+      console.warn(`Validation échouée pour ${actionDescription}:`, missingAddresses);
+      
+      const details = missingAddresses
+        .slice(0, 3) // Limiter l'affichage à 3 éléments
+        .map(item => `• ${item.name} (${item.type})`)
+        .join('\n');
+      
+      Alert.alert(
+        'Action impossible',
+        `${actionDescription} nécessite que toutes les adresses soient renseignées.\n\nÉléments sans adresse :\n${details}${missingAddresses.length > 3 ? '\n... et plus' : ''}\n\nVeuillez compléter les adresses dans les détails de vos étapes.`,
+        [{ text: 'OK' }]
+      );
+      
+      return false;
+    }
+    
+    return true;
   };
 
   if (loading) {
@@ -361,79 +592,24 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   // console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
   const RoadTripPlanning = () => {
-    // console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
-
-    const events = sortedSteps.flatMap(step => {
-      // console.log('Processing step:', step);
-
-      if (step.type === 'Stop') {
-        const stopEvent = {
-          id: step.id,
-          title: step.name,
-          startTime: new Date(step.arrivalDateTime),
-          endTime: new Date(new Date(step.arrivalDateTime).getTime() + 3600000), // Assuming each event lasts 1 hour
-          color: 'blue',
-          type: 'stop',
-        };
-        console.log('Stop event:', stopEvent);
-        return [stopEvent];
-      } else if (step.type === 'Stage') {
-        const accommodations = step.accommodations?.map(accommodation => {
-          const accommodationEvent = {
-            id: accommodation._id,
-            title: accommodation.name,
-            startTime: new Date(accommodation.arrivalDateTime),
-            endTime: new Date(accommodation.departureDateTime),
-            color: 'green',
-            type: 'accommodation',
-          };
-          console.log('Accommodation event:', accommodationEvent);
-          return accommodationEvent;
-        }) || [];
-
-        const activities = step.activities?.map(activity => {
-          const activityEvent = {
-            id: activity._id,
-            title: activity.name,
-            startTime: new Date(activity.startDateTime),
-            endTime: new Date(activity.endDateTime),
-            color: 'orange',
-            type: 'activity',
-          };
-          console.log('Activity event:', activityEvent);
-          return activityEvent;
-        }) || [];
-
-        console.log('Stage events:', [...accommodations, ...activities]);
-        return [...accommodations, ...activities];
-      }
-
-      return [];
-    });
-
-    console.log('Events:', events); // Ajoutez ce log pour vérifier les événements
-
     return (
-      <View style={styles.container}>
-        <Timetable
-          events={events}
-          mode="week"
-          startHour={0}
-          endHour={24}
-          defaultScrollHour={16}
-          slotDuration={15}
-          currentDate={new Date(roadtrip.steps[0].arrivalDateTime)} // Date de début du roadtrip
-          onEventPress={(event) => console.log('Event press:', event)}
-          onEventChange={(event) => console.log('Event change:', event)}
-          ratioWidthEventsMax={1}
-          isDraggable={false}
-        />
-      </View>
+      <AdvancedPlanning
+        roadtripId={roadtripId}
+        steps={sortedSteps}
+        onRefresh={fetchRoadtrip}
+        onSilentRefresh={fetchRoadtripSilent}
+        dragSnapInterval={dragSnapInterval}
+        navigation={navigation}
+      />
     );
   };
 
   return (
-    <Tab.Navigator id={undefined}>
+    <Tab.Navigator
+      id={undefined}
+      initialRouteName={currentTab}
+      key={currentTab}
+    >
       <Tab.Screen
         name="Liste des étapes"
         component={StepList}

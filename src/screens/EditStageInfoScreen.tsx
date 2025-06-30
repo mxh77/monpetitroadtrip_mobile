@@ -10,6 +10,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getTimeFromDate } from '../utils/dateUtils';
+import { handleSmartNavigation } from '../utils/utils';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -17,7 +18,7 @@ const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 type Props = StackScreenProps<RootStackParamList, 'EditStageInfo'>;
 
 export default function EditStageInfoScreen({ route, navigation }: Props) {
-  const { stage, refresh } = route.params;
+  const { stage, refresh, returnTo, returnToTab } = route.params;
   //console.log('Étape:', stage);
   console.log('Stage ID:', stage.id);
 
@@ -83,7 +84,7 @@ export default function EditStageInfoScreen({ route, navigation }: Props) {
           refresh();
         }
 
-        navigation.goBack();
+        handleSmartNavigation(navigation, returnTo, returnToTab);
       } else {
         Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
       }

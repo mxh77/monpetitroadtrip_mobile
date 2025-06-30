@@ -27,14 +27,16 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 import SettingsScreen from './src/screens/SettingsScreen';
 import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
+import { NavigationProvider } from './src/utils/NavigationContext';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
-    <CompressionProvider>
-      <NavigationContainer>
+    <NavigationProvider>
+      <CompressionProvider>
+        <NavigationContainer>
         <Stack.Navigator initialRouteName="Home" id={undefined}>
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
@@ -93,5 +95,6 @@ export default function App() {
       <CompressionProgressIndicator />
     </NavigationContainer>
     </CompressionProvider>
+    </NavigationProvider>
   );
 }
