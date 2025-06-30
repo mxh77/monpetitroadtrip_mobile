@@ -1,17 +1,10 @@
 import config from '../config';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList, Activity, ActivityType } from '../../types';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA, getTimeFromDate, formatTimeHHMM } from '../utils/dateUtils';
 import { handleSmartNavigation } from '../utils/utils';
-import Constants from 'expo-constants';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import { format, parseISO, set } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
 import Fontawesome5 from 'react-native-vector-icons/FontAwesome5';
 import * as ImagePicker from 'expo-image-picker';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
@@ -22,7 +15,6 @@ import { useCompression } from '../utils/CompressionContext';
 import { useImageCompression } from '../utils/imageCompression';
 
 type Props = StackScreenProps<RootStackParamList, 'EditActivity'>;
-const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
 export default function EditActivityScreen({ route, navigation }: Props) {
   const { step, activity, refresh, returnTo, returnToTab } = route.params;
@@ -42,11 +34,6 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     { key: 'files', title: 'Fichiers' },
     { key: 'photos', title: 'Photos' },
   ]);
-
-  const [addressInput, setAddressInput] = useState(activity?.address || '');
-  const [showPicker, setShowPicker] = useState({ type: '', isVisible: false });
-  const [pickerDate, setPickerDate] = useState(new Date());
-  const [tempDate, setTempDate] = useState(new Date());
 
   const [formState, setFormState] = useState<Activity>({
     _id: activity?._id || '',
@@ -185,15 +172,31 @@ export default function EditActivityScreen({ route, navigation }: Props) {
       headerRight: () => (
         <View style={{ flexDirection: 'row' }}>
           {isEditing && (
-            <TouchableOpacity onPress={handleDelete} style={{ padding: 10, marginRight: 10 }}>
-              <Fontawesome5 name="trash-alt" size={30} color="red" />
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Fontawesome5 name="trash-alt" size={16} color="white" style={{ marginRight: 6 }} />
+                <Text style={styles.deleteButtonText}>Supprimer</Text>
+              </View>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={handleSave} style={{ padding: 10, marginRight: 10 }}>
-            <Fontawesome5 name="save" size={30} color="black" />
+          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Fontawesome5 name="save" size={16} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.saveButtonText}>Sauver</Text>
+            </View>
           </TouchableOpacity>
         </View>
       ),
+      headerStyle: {
+        backgroundColor: '#FFFFFF',
+        elevation: 2,
+        shadowOpacity: 0.1,
+      },
+      headerTitleStyle: {
+        color: '#2C3E50',
+        fontWeight: '600',
+        fontSize: 18,
+      },
     });
   }, [navigation, handleSave, handleDelete]);
 
@@ -332,5 +335,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  // Styles pour les boutons du header
+  saveButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 16,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  deleteButton: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

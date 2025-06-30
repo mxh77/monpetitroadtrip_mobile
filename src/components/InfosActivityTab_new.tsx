@@ -12,12 +12,6 @@ import { ACTIVITY_TYPES, ActivityType } from '../../types';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
-// Convertir les types d'activités en format dropdown
-const ACTIVITY_TYPES_DROPDOWN = ACTIVITY_TYPES.map(type => ({
-    label: type,
-    value: type
-}));
-
 const InfosActivityTab = ({ formState, updateFormState, step }) => {
     const [addressInput, setAddressInput] = useState(formState.address || '');
     
@@ -194,7 +188,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                     <Card style={styles.fieldCard} elevation={2}>
                         <Card.Content style={styles.cardContent}>
                             <View style={styles.fieldHeader}>
-                                <Icon name="rv" size={20} color="#4A90E2" style={styles.fieldIcon} />
+                                <Icon name="tag" size={20} color="#4A90E2" style={styles.fieldIcon} />
                                 <Text style={styles.fieldLabel}>Nom de l'activité</Text>
                             </View>
                             <TextInput
@@ -225,7 +219,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                             </View>
                             <Dropdown
                                 style={styles.dropdown}
-                                data={ACTIVITY_TYPES_DROPDOWN}
+                                data={ACTIVITY_TYPES}
                                 labelField="label"
                                 valueField="value"
                                 placeholder="Sélectionner un type"
