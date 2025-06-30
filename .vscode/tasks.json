@@ -8,6 +8,12 @@
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "Installer APK Release",
+			"type": "shell",
+			"command": "adb install \"C:\\monpetitroadtrip_mobile\\android\\app\\build\\outputs\\apk\\release\\app-release.apk\"",
+			"group": "none"
 		}
 	]
 }

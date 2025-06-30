@@ -1,6 +1,10 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
+// Types d'activités disponibles
+export type ActivityType = 'Randonnée' | 'Courses' | 'Visite' | 'Autre';
+
+export const ACTIVITY_TYPES: ActivityType[] = ['Randonnée', 'Courses', 'Visite', 'Autre'];
 
 export interface Step {
   id: string;
@@ -47,6 +51,7 @@ export interface Activity {
   active: boolean;
   name: string;
   address: string;
+  type: ActivityType;
   website?: string;
   phone?: string;
   email?: string;

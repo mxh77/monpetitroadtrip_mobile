@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Step, Activity, Accommodation } from '../../types';
+import { Step, Activity, Accommodation, ActivityType } from '../../types';
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, parseISO, formatISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import config from '../config';
@@ -38,6 +38,7 @@ interface PlanningEvent {
   stepId: string;
   address?: string;
   notes?: string;
+  activityType?: string; // Type spécifique pour les activités
 }
 
 interface TimeSlot {
@@ -53,6 +54,22 @@ const COLORS = {
 
 const HOUR_HEIGHT = 60;
 const HOURS_IN_DAY = 24;
+
+// Fonction utilitaire pour obtenir l'icône du type d'activité
+const getActivityTypeIcon = (activityType?: string): string => {
+  switch (activityType) {
+    case 'Randonnée':
+      return '🥾';
+    case 'Courses':
+      return '🛒';
+    case 'Visite':
+      return '🏛️';
+    case 'Autre':
+      return '📍';
+    default:
+      return '🎯';
+  }
+};
 
 // Fonction utilitaire pour parser une date ISO sans conversion de fuseau horaire
 const parseLocalDateTime = (isoString: string): Date => {
@@ -177,7 +194,8 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
                 color: COLORS.activity,
                 stepId: step.id,
                 address: activity.address,
-                notes: activity.notes
+                notes: activity.notes,
+                activityType: activity.type
               });
             });
           }
@@ -522,6 +540,10 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
 
     console.log('✅ Step trouvé:', step.name, 'Type:', event.type);
 
+    // 🔧 Approche simplifiée : passer directement les dates mises à jour sans conversion
+    // Les dates dans les événements sont déjà au bon format pour l'affichage
+    // Testons en passant directement les dates de l'événement
+
     // Paramètres communs pour indiquer le retour au planning
     const commonParams = {
       refresh: () => {
@@ -538,10 +560,22 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
       case 'activity':
         const activity = step.activities?.find(a => a._id === event.id);
         if (activity) {
-          console.log('✅ Navigation vers EditActivity:', { stepName: step.name, activityName: activity.name });
+          // 🔧 TEST : Passer directement les dates du planning sans conversion
+          const updatedActivity = {
+            ...activity,
+            startDateTime: event.startDateTime,
+            endDateTime: event.endDateTime
+          };
+          console.log('✅ Navigation vers EditActivity avec heures mises à jour (sans conversion):', { 
+            stepName: step.name, 
+            activityName: activity.name,
+            originalStart: activity.startDateTime,
+            eventStartDateTime: event.startDateTime,
+            finalStartDateTime: updatedActivity.startDateTime
+          });
           navigation.navigate('EditActivity', {
             step: step,
-            activity: activity,
+            activity: updatedActivity,
             ...commonParams
           });
         } else {
@@ -552,10 +586,22 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
       case 'accommodation':
         const accommodation = step.accommodations?.find(a => a._id === event.id);
         if (accommodation) {
-          console.log('✅ Navigation vers EditAccommodation:', { stepName: step.name, accommodationName: accommodation.name });
+          // 🔧 TEST : Passer directement les dates du planning sans conversion
+          const updatedAccommodation = {
+            ...accommodation,
+            arrivalDateTime: event.startDateTime,
+            departureDateTime: event.endDateTime
+          };
+          console.log('✅ Navigation vers EditAccommodation avec heures mises à jour (sans conversion):', { 
+            stepName: step.name, 
+            accommodationName: accommodation.name,
+            originalArrival: accommodation.arrivalDateTime,
+            eventStartDateTime: event.startDateTime,
+            finalArrivalDateTime: updatedAccommodation.arrivalDateTime
+          });
           navigation.navigate('EditAccommodation', {
             step: step,
-            accommodation: accommodation,
+            accommodation: updatedAccommodation,
             ...commonParams
           });
         } else {
@@ -564,17 +610,34 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
         break;
       
       case 'stop':
+        // 🔧 TEST : Passer directement les dates du planning sans conversion
+        const updatedStep = {
+          ...step,
+          arrivalDateTime: event.startDateTime,
+          departureDateTime: event.endDateTime
+        };
+        
         if (step.type === 'Stop') {
-          console.log('✅ Navigation vers EditStepInfo:', { stepName: step.name });
+          console.log('✅ Navigation vers EditStepInfo avec heures mises à jour (sans conversion):', { 
+            stepName: step.name,
+            originalArrival: step.arrivalDateTime,
+            eventStartDateTime: event.startDateTime,
+            finalArrivalDateTime: updatedStep.arrivalDateTime
+          });
           navigation.navigate('EditStepInfo', {
-            step: step,
+            step: updatedStep,
             ...commonParams
           });
         } else {
           // Si c'est un Stage, on navigue vers l'édition du stage
-          console.log('✅ Navigation vers EditStageInfo:', { stepName: step.name });
+          console.log('✅ Navigation vers EditStageInfo avec heures mises à jour (sans conversion):', { 
+            stepName: step.name,
+            originalArrival: step.arrivalDateTime,
+            eventStartDateTime: event.startDateTime,
+            finalArrivalDateTime: updatedStep.arrivalDateTime
+          });
           navigation.navigate('EditStageInfo', {
-            stage: step,
+            stage: updatedStep,
             ...commonParams
           });
         }
@@ -623,7 +686,10 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
           activeOpacity={0.7}
         >
           <Text style={styles.eventTitle} numberOfLines={2}>
-            {event.title}
+            {event.type === 'activity' && event.activityType ? 
+              `${getActivityTypeIcon(event.activityType)} ${event.title}` : 
+              event.title
+            }
             {!canBeDragged && ' ⚠️'}
           </Text>
           <Text style={styles.eventTime}>

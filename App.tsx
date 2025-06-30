@@ -28,73 +28,85 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 import { NavigationProvider } from './src/utils/NavigationContext';
+import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 
 const Stack = createStackNavigator<RootStackParamList>();
+
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#4A90E2',
+    accent: '#f1c40f',
+  },
+};
 
 export default function App() {
   console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
-    <NavigationProvider>
-      <CompressionProvider>
-        <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home" id={undefined}>
-          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
-          <Stack.Screen
-            name="RoadTrips"
-            component={RoadTripsScreen}
-            options={({ navigation, route }) => ({
-              headerTitle: 'MES ROADTRIPS',
-              headerTitleAlign: 'center', // Centrer le titre
-              headerRight: () => (
-                <Icon
-                  name="logout"
-                  size={24}
-                  color="#007BFF"
-                  onPress={() => navigation.navigate('Home')}
-                  style={{ marginRight: 16 }}
-                />
-              ),
-            headerLeft: () => (
-              <Icon
-                name="refresh"
-                size={24}
-                color="#007BFF"
-                onPress={() => {
-                  if (route.params?.refresh) {
-                    route.params.refresh();
-                  }
-                }}
-                style={{ marginLeft: 16 }}
+    <PaperProvider theme={theme}>
+      <NavigationProvider>
+        <CompressionProvider>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="Home" id={undefined}>
+              <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
+              <Stack.Screen
+                name="RoadTrips"
+                component={RoadTripsScreen}
+                options={({ navigation, route }) => ({
+                  headerTitle: 'MES ROADTRIPS',
+                  headerTitleAlign: 'center', // Centrer le titre
+                  headerRight: () => (
+                    <Icon
+                      name="logout"
+                      size={24}
+                      color="#007BFF"
+                      onPress={() => navigation.navigate('Home')}
+                      style={{ marginRight: 16 }}
+                    />
+                  ),
+                  headerLeft: () => (
+                    <Icon
+                      name="refresh"
+                      size={24}
+                      color="#007BFF"
+                      onPress={() => {
+                        if (route.params?.refresh) {
+                          route.params.refresh();
+                        }
+                      }}
+                      style={{ marginLeft: 16 }}
+                    />
+                  ),
+                })}
               />
-            ),
-          })}
-        />
-        <Stack.Screen name="RoadTrip" component={RoadTripScreen} options={{ title: 'Mes RoadTrips' }} />
-        <Stack.Screen name="EditRoadTrip" component={EditRoadTripScreen} options={{ title: 'Modifier le RoadTrip' }} />
-        <Stack.Screen name="Step" component={StepScreen} options={{ title: 'Liste des étapes' }} />
-        <Stack.Screen name="Stage" component={StageScreen} options={{ title: 'Liste des étapes' }} />
-        <Stack.Screen name="Stop" component={StopScreen} options={{ title: 'Liste des étapes' }} />
-        <Stack.Screen name="CreateStep" component={CreateStepScreen} options={{ title: 'Etape' }} />
-        <Stack.Screen name="AddStepNaturalLanguage" component={AddStepNaturalLanguageScreen} options={{ title: 'Ajouter une étape via IA' }} />
-        <Stack.Screen name="AddActivityNaturalLanguage" component={AddActivityNaturalLanguageScreen} options={{ title: 'Ajouter une activité via IA' }} />
-        <Stack.Screen name="EditStepInfo" component={EditStepInfoScreen} options={{ title: 'Etape' }} />
-        <Stack.Screen name="EditStageInfo" component={EditStageInfoScreen} options={{ title: 'Etape' }} />
-        <Stack.Screen name="EditStopInfo" component={EditStopInfoScreen} options={{ title: 'Arrêt' }} />
-        <Stack.Screen name="EditAccommodation" component={EditAccommodationScreen} options={{ title: 'Etape' }} />
-        <Stack.Screen name="EditActivity" component={EditActivityScreen} options={{ title: 'Etape' }} />
-        <Stack.Screen name="HikeSuggestions" component={HikeSuggestionsScreen} options={{ title: 'Suggestions de Randonnées' }} />
-        <Stack.Screen
-          name="StepStory"
-          component={StepStoryScreen}
-          options={{ title: 'Récit du Step' }}
-        />
-        <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
-      </Stack.Navigator>
-      <CompressionProgressIndicator />
-    </NavigationContainer>
-    </CompressionProvider>
-    </NavigationProvider>
+              <Stack.Screen name="RoadTrip" component={RoadTripScreen} options={{ title: 'Mes RoadTrips' }} />
+              <Stack.Screen name="EditRoadTrip" component={EditRoadTripScreen} options={{ title: 'Modifier le RoadTrip' }} />
+              <Stack.Screen name="Step" component={StepScreen} options={{ title: 'Liste des étapes' }} />
+              <Stack.Screen name="Stage" component={StageScreen} options={{ title: 'Liste des étapes' }} />
+              <Stack.Screen name="Stop" component={StopScreen} options={{ title: 'Liste des étapes' }} />
+              <Stack.Screen name="CreateStep" component={CreateStepScreen} options={{ title: 'Etape' }} />
+              <Stack.Screen name="AddStepNaturalLanguage" component={AddStepNaturalLanguageScreen} options={{ title: 'Ajouter une étape via IA' }} />
+              <Stack.Screen name="AddActivityNaturalLanguage" component={AddActivityNaturalLanguageScreen} options={{ title: 'Ajouter une activité via IA' }} />
+              <Stack.Screen name="EditStepInfo" component={EditStepInfoScreen} options={{ title: 'Etape' }} />
+              <Stack.Screen name="EditStageInfo" component={EditStageInfoScreen} options={{ title: 'Etape' }} />
+              <Stack.Screen name="EditStopInfo" component={EditStopInfoScreen} options={{ title: 'Arrêt' }} />
+              <Stack.Screen name="EditAccommodation" component={EditAccommodationScreen} options={{ title: 'Etape' }} />
+              <Stack.Screen name="EditActivity" component={EditActivityScreen} options={{ title: 'Etape' }} />
+              <Stack.Screen name="HikeSuggestions" component={HikeSuggestionsScreen} options={{ title: 'Suggestions de Randonnées' }} />
+              <Stack.Screen
+                name="StepStory"
+                component={StepStoryScreen}
+                options={{ title: 'Récit du Step' }}
+              />
+              <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
+              <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
+            </Stack.Navigator>
+            <CompressionProgressIndicator />
+          </NavigationContainer>
+        </CompressionProvider>
+      </NavigationProvider>
+    </PaperProvider>
   );
 }

@@ -11,6 +11,7 @@ import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { newDateUTC } from '../utils/dateUtils';
 import { Dropdown } from 'react-native-element-dropdown';
+import { ACTIVITY_TYPES, ActivityType } from '../../types';
 import config from '../config';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
@@ -123,6 +124,21 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                         value={formState.name}
                         onChangeText={(text) => updateFormState({ name: text })}
                         style={styles.input}
+                    />
+                );
+            case 'type':
+                return (
+                    <Dropdown
+                        style={styles.dropdown}
+                        data={ACTIVITY_TYPES.map(type => ({ label: type, value: type }))}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Sélectionner un type d'activité"
+                        value={formState.type}
+                        onChange={(item) => updateFormState({ type: item.value as ActivityType })}
+                        renderRightIcon={() => (
+                            <Icon name="chevron-down" size={16} color="#666" />
+                        )}
                     />
                 );
             case 'address':
@@ -447,7 +463,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
     return (
         <SectionList
             sections={[
-                { title: 'Informations Générales', data: ['name', 'address', 'website', 'phone', 'email'] },
+                { title: 'Informations Générales', data: ['name', 'type', 'address', 'website', 'phone', 'email'] },
                 { title: 'Réservation', data: ['reservationNumber', 'confirmationDateTime'] },
                 { title: 'Dates', data: ['startDateTime', 'endDateTime'] },
                 { title: 'Autres informations', data: ['price', 'notes'] },

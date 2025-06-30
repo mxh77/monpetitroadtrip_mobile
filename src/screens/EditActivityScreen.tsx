@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, SectionList, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList, Activity } from '../../types';
+import { RootStackParamList, Activity, ActivityType } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { formatDateTimeUTC2Digits, formatDateJJMMAA, getTimeFromDate, formatTimeHHMM } from '../utils/dateUtils';
@@ -52,6 +52,7 @@ export default function EditActivityScreen({ route, navigation }: Props) {
     _id: activity?._id || '',
     name: activity?.name || '',
     address: activity?.address || '',
+    type: activity?.type || 'Randonnée',
     website: activity?.website || '',
     phone: activity?.phone || '',
     email: activity?.email || '',

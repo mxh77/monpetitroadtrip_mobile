@@ -1,14 +1,11 @@
 import config from '../config';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../types';
-import { format, parseISO } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { StyleSheet, View, Text, Alert, SectionList, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal, ScrollView, Animated, FlatList, Keyboard } from 'react-native';
+import { Appbar, TextInput, Button, Card, Title, Paragraph, List, useTheme, Portal, Provider as PaperProvider } from 'react-native-paper';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
+import { formatInTimeZone } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getTimeFromDate } from '../utils/dateUtils';
 import { handleSmartNavigation } from '../utils/utils';
@@ -17,6 +14,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { Step } from '../../types';
 import { useCompression } from '../utils/CompressionContext';
 import { useImageCompression } from '../utils/imageCompression';
+import { StackScreenProps } from '@react-navigation/stack';
+import { RootStackParamList } from '../../types'; // Ajustez le chemin si nécessaire
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -34,6 +34,17 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   const [pickerDate, setPickerDate] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
   const [thumbnail, setThumbnail] = useState(step.thumbnail ? { uri: step.thumbnail.url } : null);
+  
+  // États pour les suggestions d'adresse
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  
+  // États pour le positionnement de la liste d'adresses
+  const [addressInputLayout, setAddressInputLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
+  // Animations pour le feedback visuel
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const [formState, setFormState] = useState<Step>({
     id: step.id || '',
@@ -55,8 +66,57 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   console.log('formState:', formState);
 
   const googlePlacesRef = useRef(null);
+  const addressInputContainerRef = useRef<View>(null);
+
+  // Fonction pour obtenir les suggestions
+  const fetchSuggestions = async (input) => {
+    if (input.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_API_KEY}&language=fr`
+      );
+      const data = await response.json();
+      if (data.predictions) {
+        setSuggestions(data.predictions);
+        setShowSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  };
+
+  // Animation d'entrée
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  // Animation de feedback pour la sauvegarde
+  const animateSaveButton = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const handleSave = async () => {
+    animateSaveButton();
     setIsLoading(true);
     const isEdit = !!step.id;
     const url = isEdit ? `${config.BACKEND_URL}/steps/${step.id}` : `${config.BACKEND_URL}/steps`;
@@ -86,18 +146,30 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
       if (response.ok) {
         const updatedData = await response.json();
         console.log('Succès', 'Les informations ont été sauvegardées avec succès.');
-        Alert.alert('Succès', 'Les informations ont été sauvegardées avec succès.');
+        Alert.alert(
+          '✅ Succès',
+          'Les informations de votre étape ont été sauvegardées avec succès !',
+          [{ text: 'OK', style: 'default' }]
+        );
         if (refresh) {
           refresh();
         }
 
         handleSmartNavigation(navigation, returnTo, returnToTab);
       } else {
-        Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+        Alert.alert(
+          '❌ Erreur',
+          'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.',
+          [{ text: 'OK', style: 'default' }]
+        );
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de la sauvegarde.');
+      Alert.alert(
+        '❌ Erreur',
+        'Une erreur de connexion est survenue. Vérifiez votre connexion internet et réessayez.',
+        [{ text: 'OK', style: 'default' }]
+      );
     } finally {
       setIsLoading(false); // Terminez le chargement
     }
@@ -106,10 +178,23 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={handleSave} style={{ padding: 10, marginRight: 10 }}>
-          <Fontawesome5 name="save" size={30} color="black" />
+        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Fontawesome5 name="save" size={16} color="white" style={{ marginRight: 6 }} />
+            <Text style={styles.saveButtonText}>Sauver</Text>
+          </View>
         </TouchableOpacity>
       ),
+      headerStyle: {
+        backgroundColor: '#FFFFFF',
+        elevation: 2,
+        shadowOpacity: 0.1,
+      },
+      headerTitleStyle: {
+        color: '#2C3E50',
+        fontWeight: '600',
+        fontSize: 18,
+      },
     });
   }, [navigation, handleSave]);
 
@@ -236,142 +321,309 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
     switch (field) {
       case 'stepName':
         return (
-          <TextInput
-            label="Nom de l'étape"
-            value={formState.name}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
-            style={styles.input}
-          />
+          <Card style={styles.fieldCard} elevation={2}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.fieldHeader}>
+                <Icon name="map-marker-alt" size={20} color="#4A90E2" style={styles.fieldIcon} />
+                <Text style={styles.fieldLabel}>Nom de l'étape</Text>
+              </View>
+              <TextInput
+                value={formState.name}
+                onChangeText={(text) => setFormState((prevState) => ({ ...prevState, name: text }))}
+                style={styles.modernInput}
+                mode="outlined"
+                placeholder="Ex: Visite du château de Versailles"
+                outlineColor="#E8E8E8"
+                activeOutlineColor="#4A90E2"
+                theme={{
+                  colors: {
+                    primary: '#4A90E2',
+                    outline: '#E8E8E8',
+                  }
+                }}
+              />
+            </Card.Content>
+          </Card>
         );
       case 'stepAddress':
         return (
-          <View style={styles.input}>
-            <GooglePlacesAutocomplete
-              ref={googlePlacesRef}
-              placeholder="Adresse"
-              onPress={(data, details = null) => {
-                console.log('Address selected:', data.description);
-                setAddressInput(data.description);
-              }}
-              query={{
-                key: GOOGLE_API_KEY,
-                language: 'fr',
-              }}
-              textInputProps={{
-                value: addressInput,
-                onChangeText: (text) => {
-                  console.log("onChangeText (text:", text, "addressInput:", addressInput, "formState.address:", formState.address, ")");
-                  if (text !== "" || (text === "" && addressInput !== formState.address)) {
-                    console.log('Setting addressInput to:', text, " / addressInput:", addressInput, " / formState.address:", formState.address, ")");
+          <Card style={styles.fieldCard} elevation={2}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.fieldHeader}>
+                <Icon name="map-pin" size={20} color="#4A90E2" style={styles.fieldIcon} />
+                <Text style={styles.fieldLabel}>Adresse</Text>
+              </View>
+              <View 
+                ref={addressInputContainerRef}
+                style={styles.addressContainer}
+              >
+                <TextInput
+                  value={addressInput}
+                  onChangeText={(text) => {
                     setAddressInput(text);
+                    setFormState((prevState) => ({ ...prevState, address: text }));
+                    fetchSuggestions(text);
+                  }}
+                  onFocus={() => {
+                    // Mesurer la position du champ pour positionner la liste
+                    addressInputContainerRef.current?.measureInWindow((x, y, width, height) => {
+                      setAddressInputLayout({ x, y, width, height });
+                    });
+                    // Réafficher les suggestions si elles existent
+                    if (addressInput.length >= 2) {
+                      fetchSuggestions(addressInput);
+                    }
+                  }}
+                  onBlur={() => {
+                    // On utilise un petit délai pour permettre au clic sur une suggestion d'être enregistré
+                    setTimeout(() => {
+                      if (showSuggestions) {
+                        setShowSuggestions(false);
+                      }
+                    }, 200);
+                  }}
+                  style={styles.modernInput}
+                  mode="outlined"
+                  placeholder="Rechercher une adresse..."
+                  outlineColor="#E8E8E8"
+                  activeOutlineColor="#4A90E2"
+                  right={
+                    addressInput.length > 0 ? (
+                      <TextInput.Icon 
+                        icon="close-circle" 
+                        onPress={() => {
+                          setAddressInput('');
+                          setFormState((prevState) => ({ ...prevState, address: '' }));
+                          setSuggestions([]);
+                          setShowSuggestions(false);
+                        }}
+                      />
+                    ) : null
                   }
-                },
-              }}
-              listViewDisplayed={false}
-              fetchDetails={true}
-              enablePoweredByContainer={false}
-              styles={{
-                textInputContainer: {
-                  backgroundColor: 'rgba(0,0,0,0)',
-                  borderTopWidth: 0,
-                  borderBottomWidth: 0,
-                },
-                textInput: {
-                  marginLeft: 0,
-                  marginRight: 0,
-                  height: 38,
-                  color: '#5d5d5d',
-                  fontSize: 16,
-                },
-                predefinedPlacesDescription: {
-                  color: '#1faadb',
-                },
-              }}
-              renderRightButton={() => (
-                <TouchableOpacity onPress={() => {
-                  setAddressInput('');
-                }}>
-                  <Icon name="times-circle" size={20} color="gray" style={styles.clearIcon} />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+                  theme={{
+                    colors: {
+                      primary: '#4A90E2',
+                      outline: '#E8E8E8',
+                    }
+                  }}
+                />
+                
+                {/* Liste des suggestions via Portal */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <Portal>
+                    <View 
+                      style={[
+                        styles.suggestionsContainer,
+                        {
+                          top: addressInputLayout.y + addressInputLayout.height,
+                          left: addressInputLayout.x,
+                          width: addressInputLayout.width,
+                        }
+                      ]}
+                    >
+                      <FlatList
+                        data={suggestions}
+                        keyExtractor={(item) => item.place_id}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              setAddressInput(item.description);
+                              setFormState((prevState) => ({ ...prevState, address: item.description }));
+                              setShowSuggestions(false);
+                              setSuggestions([]);
+                            }}
+                          >
+                            <Icon name="map-marker-alt" size={14} color="#666" style={styles.suggestionIcon} />
+                            <Text style={styles.suggestionText} numberOfLines={2}>
+                              {item.description}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        style={styles.suggestionsList}
+                        keyboardShouldPersistTaps="always"
+                      />
+                    </View>
+                  </Portal>
+                )}
+              </View>
+            </Card.Content>
+          </Card>
         );
       case 'arrivalDateTime':
         return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('arrivalDate')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Date de d'arrivée"
-                    value={formArrivalDate ? formatInTimeZone(formArrivalDate, 'UTC', 'dd/MM/yyyy') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
+          <Card style={styles.dateTimeCard} elevation={2}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.fieldHeader}>
+                <Icon name="sign-in-alt" size={20} color="#27AE60" style={styles.fieldIcon} />
+                <Text style={styles.fieldLabel}>Arrivée</Text>
+              </View>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <TouchableOpacity 
+                    onPress={() => openPicker('arrivalDate')}
+                    style={[styles.dateTimeButton, formArrivalDate && styles.dateTimeButtonActive]}
+                  >
+                    <Text style={styles.dateTimeLabel}>Date</Text>
+                    <Text style={[
+                      styles.dateTimeValue, 
+                      !formArrivalDate && styles.dateTimeValueEmpty
+                    ]}>
+                      {formArrivalDate ? formatInTimeZone(formArrivalDate, 'UTC', 'dd/MM/yyyy') : 'Sélectionner'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('arrivalTime')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Heure d'arrivée"
-                    value={formArrivalTime ? formatInTimeZone(formArrivalTime, 'UTC', 'HH:mm') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
+                <View style={styles.dateTimeItem}>
+                  <TouchableOpacity 
+                    onPress={() => openPicker('arrivalTime')}
+                    style={[styles.dateTimeButton, formArrivalTime && styles.dateTimeButtonActive]}
+                  >
+                    <Text style={styles.dateTimeLabel}>Heure</Text>
+                    <Text style={[
+                      styles.dateTimeValue, 
+                      !formArrivalTime && styles.dateTimeValueEmpty
+                    ]}>
+                      {formArrivalTime ? formatInTimeZone(formArrivalTime, 'UTC', 'HH:mm') : 'Sélectionner'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-
-            </View>
-          </View>
+              </View>
+            </Card.Content>
+          </Card>
         );
-
 
       case 'departureDateTime':
         return (
-          <View style={styles.rowContainer}>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('departureDate')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Date de départ"
-                    value={formDepartureDate ? formatInTimeZone(formDepartureDate, 'UTC', 'dd/MM/yyyy') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
+          <Card style={styles.dateTimeCard} elevation={2}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.fieldHeader}>
+                <Icon name="sign-out-alt" size={20} color="#E74C3C" style={styles.fieldIcon} />
+                <Text style={styles.fieldLabel}>Départ</Text>
+              </View>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <TouchableOpacity 
+                    onPress={() => openPicker('departureDate')}
+                    style={[styles.dateTimeButton, formDepartureDate && styles.dateTimeButtonActive]}
+                  >
+                    <Text style={styles.dateTimeLabel}>Date</Text>
+                    <Text style={[
+                      styles.dateTimeValue, 
+                      !formDepartureDate && styles.dateTimeValueEmpty
+                    ]}>
+                      {formDepartureDate ? formatInTimeZone(formDepartureDate, 'UTC', 'dd/MM/yyyy') : 'Sélectionner'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rowItem}>
-              <TouchableOpacity onPress={() => openPicker('departureTime')}>
-                <View pointerEvents="none">
-                  <TextInput
-                    label="Heure de départ"
-                    value={formDepartureTime ? formatInTimeZone(formDepartureTime, 'UTC', 'HH:mm') : ''}
-                    style={styles.input}
-                    editable={false} // Rend le champ non éditable
-                  />
+                <View style={styles.dateTimeItem}>
+                  <TouchableOpacity 
+                    onPress={() => openPicker('departureTime')}
+                    style={[styles.dateTimeButton, formDepartureTime && styles.dateTimeButtonActive]}
+                  >
+                    <Text style={styles.dateTimeLabel}>Heure</Text>
+                    <Text style={[
+                      styles.dateTimeValue, 
+                      !formDepartureTime && styles.dateTimeValueEmpty
+                    ]}>
+                      {formDepartureTime ? formatInTimeZone(formDepartureTime, 'UTC', 'HH:mm') : 'Sélectionner'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </View>
-          </View>
+              </View>
+            </Card.Content>
+          </Card>
         );
       case 'notes':
         return (
-          <TextInput
-            label="Notes"
-            value={formState.notes}
-            onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
-            style={[styles.input, styles.notesInput]}
-            multiline
-            numberOfLines={4}
-          />
+          <Card style={styles.fieldCard} elevation={2}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.fieldHeader}>
+                <Icon name="sticky-note" size={20} color="#9B59B6" style={styles.fieldIcon} />
+                <Text style={styles.fieldLabel}>Notes</Text>
+              </View>
+              <TextInput
+                value={formState.notes}
+                onChangeText={(text) => setFormState((prevState) => ({ ...prevState, notes: text }))}
+                style={[styles.modernInput, styles.notesContainer]}
+                mode="outlined"
+                placeholder="Ajoutez vos notes, remarques ou informations importantes..."
+                multiline
+                numberOfLines={5}
+                outlineColor="#E8E8E8"
+                activeOutlineColor="#9B59B6"
+                theme={{
+                  colors: {
+                    primary: '#9B59B6',
+                    outline: '#E8E8E8',
+                  }
+                }}
+              />
+            </Card.Content>
+          </Card>
         );
       default:
         return null;
     }
+  };
+
+  const renderContent = () => {
+    const data = [
+      { type: 'thumbnail' },
+      { type: 'sectionTitle', title: '📍 Informations générales' },
+      { type: 'field', field: 'stepName' },
+      { type: 'field', field: 'stepAddress' },
+      { type: 'sectionTitle', title: '🕒 Planification' },
+      { type: 'field', field: 'arrivalDateTime' },
+      { type: 'field', field: 'departureDateTime' },
+      { type: 'sectionTitle', title: '📝 Notes & Remarques' },
+      { type: 'field', field: 'notes' },
+      { type: 'spacer' },
+    ];
+
+    const renderItem = ({ item }: { item: any }) => {
+      switch (item.type) {
+        case 'thumbnail':
+          return (
+            <View style={styles.thumbnailContainer}>
+              <TouchableOpacity onPress={pickImage} activeOpacity={0.8}>
+                <Animated.View style={[styles.thumbnailCard, { transform: [{ scale: scaleAnim }] }]}>
+                  <Image
+                    source={thumbnail ? { uri: thumbnail.uri } : require('../../assets/default-thumbnail.png')}
+                    style={styles.thumbnail}
+                  />
+                  <View style={styles.thumbnailOverlay}>
+                    <Icon name="camera" size={16} color="white" />
+                    <Text style={styles.thumbnailOverlayText}>
+                      {thumbnail ? 'Modifier la photo' : 'Ajouter une photo'}
+                    </Text>
+                  </View>
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+          );
+        case 'sectionTitle':
+          return <Text style={styles.sectionTitle}>{item.title}</Text>;
+        case 'field':
+          return renderInputField(item.field);
+        case 'spacer':
+          return <View style={{ height: 50 }} />;
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => `${item.type}-${index}`}
+        style={{ flex: 1, backgroundColor: '#F5F7FA' }}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      />
+    );
   };
 
   return (
@@ -386,31 +638,28 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
         onRequestClose={() => { }}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007BFF" />
+          <ActivityIndicator size="large" color="#4A90E2" />
+          <Text style={{ color: 'white', marginTop: 16, fontSize: 16, fontWeight: '600' }}>
+            Sauvegarde en cours...
+          </Text>
         </View>
       </Modal>
-      <View style={styles.thumbnailContainer}>
-        <TouchableOpacity onPress={pickImage}>
-          <Image
-            source={thumbnail ? { uri: thumbnail.uri } : require('../../assets/default-thumbnail.png')}
-            style={styles.thumbnail}
-          />
+      
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <TouchableOpacity 
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={() => {
+            if (showSuggestions) {
+              setShowSuggestions(false);
+              setSuggestions([]);
+            }
+          }}
+        >
+          {renderContent()}
         </TouchableOpacity>
-      </View>
-      <SectionList
-        sections={[
-          { title: 'Informations de l\'étape', data: ['stepName', 'stepAddress'] },
-          { title: 'Dates et heures', data: ['arrivalDateTime', 'departureDateTime'] },
-          { title: 'Notes', data: ['notes'] },
-        ]}
-        renderItem={({ item }) => <View key={item}>{renderInputField(item)}</View>}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionTitle}>{title}</Text>
-        )}
-      />
+      </Animated.View>
+      
       {showPicker.isVisible && (
         <DateTimePicker
           value={pickerDate}
@@ -432,14 +681,161 @@ export default function EditStepInfoScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: "#f9f9f9",
+    padding: 16,
+    paddingTop: 0, // Réduire le padding top pour FlatList
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#2C3E50",
+    marginTop: 8,
+    paddingHorizontal: 0, // S'assurer que le padding est cohérent
   },
+  // Styles modernes pour les cartes
+  fieldCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    overflow: 'visible',
+  },
+  cardContent: {
+    padding: 16,
+    overflow: 'visible',
+  },
+  fieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  fieldIcon: {
+    marginRight: 12,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  modernInput: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+  },
+  addressContainer: {
+    position: 'relative',
+    zIndex: 999999,
+    // Ajouter de l'espace en bas pour la liste de suggestions
+    marginBottom: 10,
+    overflow: 'visible',
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 15,
+    top: 15,
+    zIndex: 1000000,
+  },
+  // Styles pour les dates/heures modernisés
+  dateTimeCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dateTimeItem: {
+    flex: 1,
+  },
+  dateTimeButton: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    minHeight: 56,
+    justifyContent: 'center',
+  },
+  dateTimeButtonActive: {
+    borderColor: '#4A90E2',
+    backgroundColor: '#EBF4FF',
+  },
+  dateTimeLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  dateTimeValue: {
+    fontSize: 16,
+    color: '#2C3E50',
+    fontWeight: '600',
+  },
+  dateTimeValueEmpty: {
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  // Thumbnail modernisé
+  thumbnailContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  thumbnailCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  thumbnail: {
+    width: 200,
+    height: 120,
+    borderRadius: 16,
+  },
+  thumbnailOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailOverlayText: {
+    color: 'white',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  // Styles pour les notes
+  notesContainer: {
+    minHeight: 120,
+  },
+  // Anciens styles conservés pour compatibilité
   input: {
     marginBottom: 20,
     padding: 10,
@@ -461,19 +857,62 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginTop: 10,
   },
-  thumbnailContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  thumbnail: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  // Style pour le bouton de sauvegarde dans le header
+  saveButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 16,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Styles pour les suggestions Google Places
+  suggestionsContainer: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    elevation: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    maxHeight: 250,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    zIndex: 1000000,
+  },
+  suggestionsList: {
+    maxHeight: 250,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: 'white',
+  },
+  suggestionItemLast: {
+    borderBottomWidth: 0,
+  },
+  suggestionIcon: {
+    marginRight: 12,
+    color: '#4A90E2',
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 20,
   },
 });

@@ -8,6 +8,22 @@ import { TriangleCornerTopRight, TriangleCornerTopLeft } from './shapes';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 import { Switch } from 'react-native-gesture-handler';
 
+// Fonction utilitaire pour obtenir l'icône du type d'activité
+const getActivityTypeIcon = (activityType?: string): string => {
+  switch (activityType) {
+    case 'Randonnée':
+      return '🥾';
+    case 'Courses':
+      return '🛒';
+    case 'Visite':
+      return '🏛️';
+    case 'Autre':
+      return '📍';
+    default:
+      return '🎯';
+  }
+};
+
 
 const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity }) => {
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
@@ -50,7 +66,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
             ]}
           >
             <Card.Title
-              title={activity.name}
+              title={`${getActivityTypeIcon(activity.type)} ${activity.name}`}
               titleStyle={styles.cardTitle}
               right={() => (
                 <Switch
@@ -89,6 +105,15 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
                   </Text>
                 </View>
               </View>
+              
+              {/* Affichage du type d'activité */}
+              {activity.type && (
+                <View style={{ marginTop: 8, paddingVertical: 4 }}>
+                  <Text style={styles.activityType}>
+                    Type: {activity.type}
+                  </Text>
+                </View>
+              )}
             </Card.Content>
             <Card.Content>
               <TouchableOpacity
@@ -321,6 +346,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  activityType: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
 
