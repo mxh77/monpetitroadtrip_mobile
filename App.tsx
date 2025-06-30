@@ -14,6 +14,7 @@ import StageScreen from './src/screens/StageScreen';
 import StopScreen from './src/screens/StopScreen';
 import CreateStepScreen from './src/screens/CreateStepScreen';
 import AddStepNaturalLanguageScreen from './src/screens/AddStepNaturalLanguageScreen';
+import AddActivityNaturalLanguageScreen from './src/screens/AddActivityNaturalLanguageScreen';
 import EditStepInfoScreen from './src/screens/EditStepInfoScreen';
 import EditStageInfoScreen from './src/screens/EditStageInfoScreen';
 import EditStopInfoScreen from './src/screens/EditStopInfoScreen';
@@ -74,6 +75,7 @@ export default function App() {
         <Stack.Screen name="Stop" component={StopScreen} options={{ title: 'Liste des étapes' }} />
         <Stack.Screen name="CreateStep" component={CreateStepScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="AddStepNaturalLanguage" component={AddStepNaturalLanguageScreen} options={{ title: 'Ajouter une étape via IA' }} />
+        <Stack.Screen name="AddActivityNaturalLanguage" component={AddActivityNaturalLanguageScreen} options={{ title: 'Ajouter une activité via IA' }} />
         <Stack.Screen name="EditStepInfo" component={EditStepInfoScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="EditStageInfo" component={EditStageInfoScreen} options={{ title: 'Etape' }} />
         <Stack.Screen name="EditStopInfo" component={EditStopInfoScreen} options={{ title: 'Arrêt' }} />

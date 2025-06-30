@@ -1,6 +1,6 @@
 import config from '../config';
 import React, { useState } from 'react';
-import { Text, View, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Image, StyleSheet, Modal } from 'react-native';
 import { Card, Button } from 'react-native-paper';
 import { formatDateJJMMAA } from '../utils/dateUtils';
 import { openInGoogleMaps, openWebsite } from '../utils/utils';
@@ -10,6 +10,7 @@ import { Switch } from 'react-native-gesture-handler';
 
 
 const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity }) => {
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
 
   // Trier les activités par active=true d'abord, puis par date croissante (startDateTime)
   const sortedActivities = [...step.activities].sort((a, b) => {
@@ -20,6 +21,22 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
     }
     return b.active - a.active; // Les activités actives (true) viennent avant les inactives (false)
   });
+
+  // Fonction pour gérer l'ajout classique d'une activité
+  const handleAddActivityClassic = () => {
+    setShowAddActivityModal(false);
+    navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep });
+  };
+
+  // Fonction pour gérer l'ajout via langage naturel
+  const handleAddActivityNaturalLanguage = () => {
+    setShowAddActivityModal(false);
+    navigation.navigate('AddActivityNaturalLanguage', {
+      roadtripId: step.roadtripId,
+      stepId: step.id,
+      refresh: fetchStep, // Passer la fonction de rafraîchissement
+    });
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -118,11 +135,11 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
       </ScrollView>
       <TouchableOpacity
         style={styles.triangleButtonContainer}
-        onPress={() => navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep })}
+        onPress={() => setShowAddActivityModal(true)}
       >
         <TriangleCornerTopRight
           style={styles.triangleButton}
-          onPress={() => navigation.navigate('EditActivity', { step, activity: null, refresh: fetchStep })}
+          onPress={() => setShowAddActivityModal(true)}
         />
       </TouchableOpacity>
       <TouchableOpacity
@@ -131,6 +148,50 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
       >
         <TriangleCornerTopLeft style={styles.triangleButtonTopLeft} />
       </TouchableOpacity>
+      
+      {/* Modal de choix pour l'ajout d'activité */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showAddActivityModal}
+        onRequestClose={() => setShowAddActivityModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Ajouter une activité</Text>
+            <Text style={styles.modalSubtitle}>Comment souhaitez-vous ajouter votre activité ?</Text>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleAddActivityClassic}
+            >
+              <Icon name="edit" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Ajout classique</Text>
+                <Text style={styles.modalButtonSubtext}>Formulaire détaillé</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleAddActivityNaturalLanguage}
+            >
+              <Icon name="magic" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Ajout via IA</Text>
+                <Text style={styles.modalButtonSubtext}>Décrivez votre activité en langage naturel</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowAddActivityModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -187,6 +248,79 @@ const styles = StyleSheet.create({
   triangleButtonTopLeft: {
     width: 50,
     height: 50,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
+    margin: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    minWidth: 300,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#666',
+    lineHeight: 20,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  modalButtonIcon: {
+    marginRight: 12,
+  },
+  modalButtonTextContainer: {
+    flex: 1,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  modalButtonSubtext: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalCancelButton: {
+    backgroundColor: '#6c757d',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  modalCancelText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

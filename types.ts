@@ -124,9 +124,13 @@ export type RootStackParamList = {
     activity: Activity;
     refresh: () => void;
   };
-  HikeSuggestions: {
-    step: Step;
+  AddActivityNaturalLanguage: {
+    roadtripId: string;
+    stepId: string;
     refresh: () => void;
+  };
+  HikeSuggestions: {
+    idStep: string;
   };
   Errors: {
     roadtripId: string;
