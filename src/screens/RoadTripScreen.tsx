@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -88,10 +88,12 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     }
   };
 
-  const fetchRoadtrip = async () => {
+  const fetchRoadtrip = async (signal?: AbortSignal) => {
     setLoading(true); // Commencez le chargement
     try {
-      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`, {
+        signal // Ajouter le signal d'abort
+      });
       const data = await response.json();
       // console.log('Données de l\'API:', data);
 
@@ -196,10 +198,17 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
+    
     const unsubscribe = navigation.addListener('focus', () => {
-      fetchRoadtrip();
+      fetchRoadtrip(controller.signal);
     });
-    return unsubscribe;
+    
+    // Cleanup : annuler la requête si le composant se démonte
+    return () => {
+      controller.abort();
+      unsubscribe();
+    };
   }, [navigation, roadtripId]);
 
   useEffect(() => {
@@ -305,11 +314,12 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   };
 
-  const renderRightActions = (stepId: string) => (
+  // Optimisation : memoization de renderRightActions pour éviter les re-créations
+  const renderRightActions = useCallback((stepId: string) => (
     <TouchableOpacity style={styles.deleteButton} onPress={() => confirmDeleteStep(stepId)}>
       <Icon name="trash" size={24} color="white" />
     </TouchableOpacity>
-  );
+  ), []);
 
   // Fonction pour gérer le rafraîchissement
   const onRefresh = async () => {
@@ -419,10 +429,10 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return true;
   };
 
-  // Fonctions utilitaires pour le restyling des étapes
-
+  // Optimisation : memoization des fonctions utilitaires pour le restyling des étapes
+  
   // Fonction pour déterminer le type d'activité principal d'une étape
-  const getStepMainActivityType = (step: any): string => {
+  const getStepMainActivityType = useCallback((step: any): string => {
     if (step.type === 'Transport') return 'Transport';
     
     // Pour les étapes de type Stage, prendre le type de la première activité active
@@ -435,33 +445,33 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     
     // Par défaut, considérer comme une visite
     return 'Visite';
-  };
+  }, []);
 
   // Fonction pour compter les éléments actifs d'une étape
-  const getStepActiveCounts = (step: any) => {
+  const getStepActiveCounts = useCallback((step: any) => {
     const activeAccommodations = step.accommodations ? 
       step.accommodations.filter((acc: any) => acc.active !== false).length : 0;
     const activeActivities = step.activities ? 
       step.activities.filter((act: any) => act.active !== false).length : 0;
     
     return { accommodations: activeAccommodations, activities: activeActivities };
-  };
+  }, []);
 
   // Fonction pour obtenir l'icône de l'étape en fonction de son type
-  const getStepIcon = (step: any): string => {
+  const getStepIcon = useCallback((step: any): string => {
     if (step.type === 'Transport') return 'truck';
     
     const mainActivityType = getStepMainActivityType(step);
     return getActivityTypeIcon(mainActivityType);
-  };
+  }, [getStepMainActivityType]);
 
   // Fonction pour obtenir la couleur de l'étape
-  const getStepColor = (step: any): string => {
+  const getStepColor = useCallback((step: any): string => {
     if (step.type === 'Transport') return '#FF9800'; // Orange pour transport
     
     const mainActivityType = getStepMainActivityType(step);
     return getActivityTypeColor(mainActivityType);
-  };
+  }, [getStepMainActivityType]);
 
   if (loading) {
     return (
@@ -479,18 +489,39 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   }
 
-  // Triez les steps par arrivalDateTime
-  const sortedSteps = roadtrip.steps.sort((a, b) =>
-    new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
-  ).map(step => ({
-    ...step,
-    accommodations: step.accommodations || [],
-    activities: step.activities || [],
-  }));
+  // Optimisation : mémoïsation du tri des steps
+  const sortedSteps = useMemo(() => {
+    if (!roadtrip?.steps) return [];
+    
+    return roadtrip.steps.sort((a, b) =>
+      new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
+    ).map(step => ({
+      ...step,
+      accommodations: step.accommodations || [],
+      activities: step.activities || [],
+      // Pré-calcul des dates formatées pour éviter les calculs dans le rendu
+      formattedArrivalDate: new Date(step.arrivalDateTime).toLocaleString('fr-FR', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC'
+      }),
+      formattedDepartureDate: new Date(step.departureDateTime).toLocaleString('fr-FR', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC'
+      })
+    }));
+  }, [roadtrip?.steps]);
 
   console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
-  const getTravelInfoBackgroundColor = (note) => {
+  const getTravelInfoBackgroundColor = useCallback((note) => {
     switch (note) {
       case 'ERROR':
         return '#ffcccc'; // Rouge clair
@@ -501,7 +532,106 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       default:
         return '#f0f0f0'; // Gris clair par défaut
     }
-  };
+  }, []);
+
+  // Optimisation : getItemLayout pour de meilleures performances de scroll
+  const getItemLayout = useCallback((data: any, index: number) => {
+    const ITEM_HEIGHT = 280; // Hauteur approximative de chaque carte + travel info
+    const ITEM_MARGIN = 16;   // Marge entre les éléments
+    return {
+      length: ITEM_HEIGHT + ITEM_MARGIN,
+      offset: (ITEM_HEIGHT + ITEM_MARGIN) * index,
+      index,
+    };
+  }, []);
+
+  // Optimisation : renderItem mémoïsé pour éviter les re-rendus inutiles
+  const renderStepItem = useCallback(({ item, index }) => {
+    const mainActivityType = getStepMainActivityType(item);
+    const stepColor = getStepColor(item);
+    const stepIcon = getStepIcon(item);
+    const activeCounts = getStepActiveCounts(item);
+    const hasAlert = errors.some(error => error.stepId === item.id);
+
+    return (
+      <>
+        {index > 0 && (
+          <View style={styles.travelInfoContainer}>
+            <View style={styles.travelInfoLine} />
+            <Image source={rvIcon} style={styles.travelIcon} />
+            <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
+              <Text style={styles.travelText}>
+                Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
+              </Text>
+              <Text style={styles.travelText}>
+                Distance : {sortedSteps[index].distancePreviousStep}km
+              </Text>
+            </View>
+            <View style={styles.travelInfoLine} />
+          </View>
+        )}
+        
+        <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+          <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
+            {/* Header avec couleur thématique */}
+            <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
+              <View style={styles.stepHeaderLeft}>
+                <View style={styles.stepIconContainer}>
+                  <Icon name={stepIcon} size={20} color="white" />
+                </View>
+                <View style={styles.stepHeaderInfo}>
+                  <Text style={styles.stepTitle} numberOfLines={1}>
+                    {getActivityTypeEmoji(mainActivityType)} {item.name}
+                  </Text>
+                  <Text style={styles.stepType}>{item.type}</Text>
+                </View>
+              </View>
+              <View style={styles.stepHeaderRight}>
+                {hasAlert && (
+                  <Badge style={styles.alertBadge} size={18}>!</Badge>
+                )}
+                {activeCounts.accommodations > 0 && (
+                  <Badge style={styles.accommodationBadge} size={16}>{activeCounts.accommodations}</Badge>
+                )}
+                {activeCounts.activities > 0 && (
+                  <Badge style={styles.activityBadge} size={16}>{activeCounts.activities}</Badge>
+                )}
+              </View>
+            </View>
+
+            {/* Contenu principal */}
+            <TouchableOpacity
+              style={styles.stepCardContent}
+              onPress={() => handleStepPress(item)}
+            >
+              {/* Thumbnail optimisé */}
+              <Image
+                source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+                style={styles.stepThumbnail}
+                resizeMode="cover"
+                defaultSource={require('../../assets/default-thumbnail.png')}
+                fadeDuration={200}
+              />
+
+              {/* Informations de dates - utilisation des dates pré-calculées */}
+              <View style={styles.stepDatesContainer}>
+                <View style={styles.stepDateRow}>
+                  <Icon name="arrow-right" size={14} color="#28a745" style={styles.stepDateIcon} />
+                  <Text style={styles.stepDateLabel}>Arrivée:</Text>
+                  <Text style={styles.stepDateTime}>{item.formattedArrivalDate}</Text>
+                </View>
+                <View style={styles.stepDateRow}>
+                  <Icon name="arrow-right" size={14} color="#dc3545" style={styles.stepDateIcon} />
+                  <Text style={styles.stepDateLabel}>Départ:</Text>
+                  <Text style={styles.stepDateTime}>{item.formattedDepartureDate}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Card>
+        </Swipeable>
+      </>
+    );
+  }, [errors, sortedSteps, getTravelInfoBackgroundColor]);
 
   const StepList = () => (
     <View style={styles.container}>
@@ -512,107 +642,14 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        renderItem={({ item, index }) => {
-          const mainActivityType = getStepMainActivityType(item);
-          const stepColor = getStepColor(item);
-          const stepIcon = getStepIcon(item);
-          const activeCounts = getStepActiveCounts(item);
-          const hasAlert = errors.some(error => error.stepId === item.id);
-
-          return (
-            <>
-              {index > 0 && (
-                <View style={styles.travelInfoContainer}>
-                  <View style={styles.travelInfoLine} />
-                  <Image source={rvIcon} style={styles.travelIcon} />
-                  <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
-                    <Text style={styles.travelText}>
-                      Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
-                    </Text>
-                    <Text style={styles.travelText}>
-                      Distance : {sortedSteps[index].distancePreviousStep}km
-                    </Text>
-                  </View>
-                  <View style={styles.travelInfoLine} />
-                </View>
-              )}
-              
-              <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-                <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
-                  {/* Header avec couleur thématique */}
-                  <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
-                    <View style={styles.stepHeaderLeft}>
-                      <View style={styles.stepIconContainer}>
-                        <Icon name={stepIcon} size={20} color="white" />
-                      </View>
-                      <View style={styles.stepHeaderInfo}>
-                        <Text style={styles.stepTitle} numberOfLines={1}>
-                          {getActivityTypeEmoji(mainActivityType)} {item.name}
-                        </Text>
-                        <Text style={styles.stepType}>{item.type}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.stepHeaderRight}>
-                      {hasAlert && (
-                        <Badge style={styles.alertBadge} size={18}>!</Badge>
-                      )}
-                      {activeCounts.accommodations > 0 && (
-                        <Badge style={styles.accommodationBadge} size={16}>{activeCounts.accommodations}</Badge>
-                      )}
-                      {activeCounts.activities > 0 && (
-                        <Badge style={styles.activityBadge} size={16}>{activeCounts.activities}</Badge>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Contenu principal */}
-                  <TouchableOpacity
-                    style={styles.stepCardContent}
-                    onPress={() => handleStepPress(item)}
-                  >
-                    {/* Thumbnail */}
-                    <Image
-                      source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
-                      style={styles.stepThumbnail}
-                    />
-
-                    {/* Informations de dates */}
-                    <View style={styles.stepDatesContainer}>
-                      <View style={styles.stepDateRow}>
-                        <Icon name="arrow-right" size={14} color="#28a745" style={styles.stepDateIcon} />
-                        <Text style={styles.stepDateLabel}>Arrivée:</Text>
-                        <Text style={styles.stepDateTime}>
-                          {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'UTC'
-                          })}
-                        </Text>
-                      </View>
-                      <View style={styles.stepDateRow}>
-                        <Icon name="arrow-right" size={14} color="#dc3545" style={styles.stepDateIcon} />
-                        <Text style={styles.stepDateLabel}>Départ:</Text>
-                        <Text style={styles.stepDateTime}>
-                          {new Date(item.departureDateTime).toLocaleString('fr-FR', {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'UTC'
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </Card>
-              </Swipeable>
-            </>
-          );
-        }}
+        renderItem={renderStepItem}
+        // Optimisations de performance FlatList
+        removeClippedSubviews={true}
+        initialNumToRender={4}
+        maxToRenderPerBatch={3}
+        updateCellsBatchingPeriod={100}
+        windowSize={5}
+        getItemLayout={getItemLayout}
       />
       <FAB
         style={styles.fab}

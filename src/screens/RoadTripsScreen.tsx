@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl, TouchableOpacity } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
@@ -43,22 +43,33 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   const [selectedRoadtrip, setSelectedRoadtrip] = useState<Roadtrip | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const fetchRoadtrips = async () => {
+  const fetchRoadtrips = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const response = await customFetch(`${config.BACKEND_URL}/roadtrips`, {});
+      const response = await customFetch(`${config.BACKEND_URL}/roadtrips`, {
+        signal // Ajouter le signal d'abort
+      });
+      
+      if (signal?.aborted) return; // Arrêter si l'opération est annulée
+      
       const data = await response.json();
       setRoadtrips(data);
     } catch (error) {
-      //console.error('Erreur lors de la récupération des roadtrips:', error);
+      if (error.name !== 'AbortError') {
+        //console.error('Erreur lors de la récupération des roadtrips:', error);
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchRoadtrips();
-    navigation.setParams({ refresh: fetchRoadtrips });
+    const controller = new AbortController();
+    
+    fetchRoadtrips(controller.signal);
+    navigation.setParams({ refresh: () => fetchRoadtrips() });
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginLeft: 16 }}>
@@ -66,6 +77,11 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       ),
     });
+
+    // Cleanup : annuler la requête si le composant se démonte
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const handleAddRoadtrip = () => {
@@ -105,6 +121,46 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
     setModalVisible(true);
   };
 
+  // Optimisation : formatage des dates pré-calculé
+  const roadtripsWithFormattedDates = useMemo(() => {
+    return roadtrips.map(roadtrip => ({
+      ...roadtrip,
+      formattedDateRange: `${roadtrip.startDateTime?.toLocaleDateString?.('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) || ''} - ${roadtrip.endDateTime?.toLocaleDateString?.('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) || ''}`
+    }));
+  }, [roadtrips]);
+
+  // Optimisation : mémoïsation du rendu des éléments
+  const renderRoadtripItem = useCallback(({ item }: { item: Roadtrip & { formattedDateRange: string } }) => (
+    <Pressable
+      style={styles.card}
+      onPress={() => navigation.navigate('RoadTrip', { roadtripId: item._id })}
+      onLongPress={() => handleLongPress(item)}
+    >
+      {item.thumbnail ? (
+        <Image source={{ uri: item.thumbnail.url }} style={styles.cardImage} />
+      ) : (
+        <View style={styles.cardImagePlaceholder}>
+          <Text style={styles.cardImagePlaceholderText}>No Image</Text>
+        </View>
+      )}
+      <Text style={styles.cardTitle}>{item.name}</Text>
+      <Text style={styles.cardText}>{item.days} jours</Text>
+      <Text style={styles.cardText}>{item.formattedDateRange}</Text>
+      <Text style={styles.cardText}>{item.notes}</Text>
+    </Pressable>
+  ), [navigation]);
+
+  // Optimisation : getItemLayout pour de meilleures performances de scroll
+  const getItemLayout = useCallback((data: any, index: number) => {
+    const ITEM_HEIGHT = 220; // Hauteur approximative de chaque carte
+    const ITEM_MARGIN = 10;   // Marge entre les éléments
+    return {
+      length: ITEM_HEIGHT + ITEM_MARGIN,
+      offset: (ITEM_HEIGHT + ITEM_MARGIN) * Math.floor(index / 2), // Division par 2 car numColumns=2
+      index,
+    };
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchRoadtrips();
@@ -122,34 +178,20 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={roadtrips}
+        data={roadtripsWithFormattedDates}
         keyExtractor={(item) => item._id}
         numColumns={2}
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            onPress={() => navigation.navigate('RoadTrip', { roadtripId: item._id })}
-            onLongPress={() => handleLongPress(item)} // Ajoutez une action de long press pour afficher le modal
-          >
-            {item.thumbnail ? (
-              <Image source={{ uri: item.thumbnail.url }} style={styles.cardImage} />
-            ) : (
-              <View style={styles.cardImagePlaceholder}>
-                <Text style={styles.cardImagePlaceholderText}>No Image</Text>
-              </View>
-            )}
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardText}>{item.days} jours</Text>
-            <Text style={styles.cardText}>
-              {`${new Date(item.startDateTime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })} - ${new Date(item.endDateTime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`}
-            </Text>
-            <Text style={styles.cardText}>{item.notes}</Text>
-          </Pressable>
-        )}
+        renderItem={renderRoadtripItem}
         contentContainerStyle={styles.grid}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        removeClippedSubviews={true}
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={100}
+        windowSize={10}
+        getItemLayout={getItemLayout}
       />
       <FAB
         style={styles.fab}
