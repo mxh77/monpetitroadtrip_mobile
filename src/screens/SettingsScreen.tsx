@@ -14,6 +14,7 @@ export default function SettingsScreen({ navigation }: Props) {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [algoliaSearchRadius, setAlgoliaSearchRadius] = useState<number>(50000);
   const [dragSnapInterval, setDragSnapInterval] = useState<number>(15); // Pas de déplacement en minutes
+  const [enablePhotosInStories, setEnablePhotosInStories] = useState<boolean>(true); // Utiliser les photos dans les récits
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,9 @@ export default function SettingsScreen({ navigation }: Props) {
       setDragSnapInterval(
         typeof data.dragSnapInterval === 'number' ? data.dragSnapInterval : 15
       );
+      setEnablePhotosInStories(
+        typeof data.enablePhotosInStories === 'boolean' ? data.enablePhotosInStories : true
+      );
       setLoading(false);
     } catch (e) {
       setError('Erreur réseau ou serveur.');
@@ -91,7 +95,7 @@ export default function SettingsScreen({ navigation }: Props) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ systemPrompt, algoliaSearchRadius, dragSnapInterval }),
+        body: JSON.stringify({ systemPrompt, algoliaSearchRadius, dragSnapInterval, enablePhotosInStories }),
       });
       if (!response.ok) {
         setError('Erreur lors de la sauvegarde.');
@@ -274,6 +278,67 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Section Photos dans les récits */}
+      <Text style={styles.sectionTitle}>Récits avec IA</Text>
+      <Text style={styles.sectionDescription}>
+        Configurez les fonctionnalités de génération de récits avec intelligence artificielle
+      </Text>
+      
+      <TouchableOpacity
+        style={[
+          styles.photoToggleButton,
+          enablePhotosInStories ? styles.photoToggleButtonEnabled : styles.photoToggleButtonDisabled
+        ]}
+        onPress={() => setEnablePhotosInStories(!enablePhotosInStories)}
+      >
+        <View style={styles.photoToggleContent}>
+          <Icon 
+            name={enablePhotosInStories ? "images" : "file-alt"} 
+            size={20} 
+            color={enablePhotosInStories ? "#28a745" : "#6c757d"} 
+            style={styles.photoToggleIcon} 
+          />
+          <View style={styles.photoToggleTextContainer}>
+            <Text style={[
+              styles.photoToggleTitle,
+              enablePhotosInStories ? styles.photoToggleTitleEnabled : styles.photoToggleTitleDisabled
+            ]}>
+              Utiliser les photos dans les récits
+            </Text>
+            <Text style={styles.photoToggleSubtext}>
+              {enablePhotosInStories 
+                ? "GPT-4o Vision analysera vos photos pour des récits enrichis" 
+                : "GPT-4o-mini standard pour des récits textuels rapides"}
+            </Text>
+          </View>
+          <View style={styles.photoToggleSwitch}>
+            <View style={[
+              styles.photoToggleSwitchTrack,
+              enablePhotosInStories ? styles.photoToggleSwitchTrackEnabled : styles.photoToggleSwitchTrackDisabled
+            ]}>
+              <View style={[
+                styles.photoToggleSwitchThumb,
+                enablePhotosInStories ? styles.photoToggleSwitchThumbEnabled : styles.photoToggleSwitchThumbDisabled
+              ]} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.photoToggleDetails}>
+          <View style={styles.photoToggleDetailRow}>
+            <Icon name="dollar-sign" size={12} color="#6c757d" />
+            <Text style={styles.photoToggleDetailText}>
+              {enablePhotosInStories ? "Coût: Plus élevé avec analyse d'images" : "Coût: Économique sans images"}
+            </Text>
+          </View>
+          <View style={styles.photoToggleDetailRow}>
+            <Icon name="clock" size={12} color="#6c757d" />
+            <Text style={styles.photoToggleDetailText}>
+              {enablePhotosInStories ? "Vitesse: Plus lent avec analyse visuelle" : "Vitesse: Rapide sans analyse"}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
 
       {/* Section Calcul des temps de trajet */}
       <Text style={styles.sectionTitle}>Maintenance des roadtrips</Text>
@@ -669,5 +734,97 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+  },
+
+  // Styles pour la section photos dans les récits
+  photoToggleButton: {
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    backgroundColor: '#f8f9fa',
+  },
+  photoToggleButtonEnabled: {
+    borderColor: '#28a745',
+    backgroundColor: '#f0fff4',
+  },
+  photoToggleButtonDisabled: {
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
+  },
+  photoToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  photoToggleIcon: {
+    marginRight: 12,
+  },
+  photoToggleTextContainer: {
+    flex: 1,
+  },
+  photoToggleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  photoToggleTitleEnabled: {
+    color: '#28a745',
+  },
+  photoToggleTitleDisabled: {
+    color: '#6c757d',
+  },
+  photoToggleSubtext: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  photoToggleSwitch: {
+    marginLeft: 12,
+  },
+  photoToggleSwitchTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  photoToggleSwitchTrackEnabled: {
+    backgroundColor: '#28a745',
+  },
+  photoToggleSwitchTrackDisabled: {
+    backgroundColor: '#ccc',
+  },
+  photoToggleSwitchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  photoToggleSwitchThumbEnabled: {
+    alignSelf: 'flex-end',
+  },
+  photoToggleSwitchThumbDisabled: {
+    alignSelf: 'flex-start',
+  },
+  photoToggleDetails: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  photoToggleDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  photoToggleDetailText: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginLeft: 6,
   },
 });
