@@ -7,25 +7,7 @@ import { openInGoogleMaps, openWebsite } from '../utils/utils';
 import { TriangleCornerTopRight, TriangleCornerTopLeft } from './shapes';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 import { Switch } from 'react-native-gesture-handler';
-
-// Fonction utilitaire pour obtenir l'icône du type d'activité
-const getActivityTypeIcon = (activityType?: string): string => {
-  switch (activityType) {
-    case 'Randonnée':
-      return '🥾';
-    case 'Courses':
-      return '🛒';
-    case 'Visite':
-      return '🏛️';
-    case 'Transport':
-      return '🚐';
-    case 'Autre':
-      return '📍';
-    default:
-      return '🎯';
-  }
-};
-
+import { getActivityTypeIcon, getActivityTypeEmoji } from '../utils/activityIcons';
 
 const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity }) => {
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
@@ -68,7 +50,7 @@ const Activities = ({ step, navigation, fetchStep, toggleActiveStatusActivity })
             ]}
           >
             <Card.Title
-              title={`${getActivityTypeIcon(activity.type)} ${activity.name}`}
+              title={`${getActivityTypeEmoji(activity.type)} ${activity.name}`}
               titleStyle={styles.cardTitle}
               right={() => (
                 <Switch

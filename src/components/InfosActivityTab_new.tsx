@@ -219,7 +219,7 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                             </View>
                             <Dropdown
                                 style={styles.dropdown}
-                                data={ACTIVITY_TYPES}
+                                data={ACTIVITY_TYPES.map(type => ({ label: type, value: type }))}
                                 labelField="label"
                                 valueField="value"
                                 placeholder="Sélectionner un type"

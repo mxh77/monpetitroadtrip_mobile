@@ -25,6 +25,7 @@ import GeneralInfo from '../components/GeneralInfo';
 import Accommodations from '../components/Accommodations';
 import Activities from '../components/Activities';
 import { TriangleCornerTopRight } from '../components/shapes';
+import { getActivityTypeIcon, getActivityTypeColor } from '../utils/activityIcons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -463,8 +464,8 @@ export default function StepScreen({ route, navigation }: Props) {
                 tracksViewChanges={false}
             >
                 <View style={styles.markerContainer}>
-                    <View style={[styles.markerIcon, { backgroundColor: '#FF5722' }]}>
-                        <Fontawesome5 name="hiking" size={16} color="white" />
+                    <View style={[styles.markerIcon, { backgroundColor: getActivityTypeColor((activity as any).type || 'Randonnée') }]}>
+                        <Fontawesome5 name={getActivityTypeIcon((activity as any).type || 'Randonnée')} size={16} color="white" />
                     </View>
                     <View style={styles.markerTriangle} />
                 </View>

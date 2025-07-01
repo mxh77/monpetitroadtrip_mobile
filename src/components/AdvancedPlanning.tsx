@@ -18,6 +18,7 @@ import { format, addDays, startOfWeek, endOfWeek, isSameDay, parseISO, formatISO
 import { fr } from 'date-fns/locale';
 import config from '../config';
 import { useNavigationContext } from '../utils/NavigationContext';
+import { getActivityTypeEmoji } from '../utils/activityIcons';
 
 interface AdvancedPlanningProps {
   roadtripId: string;
@@ -54,22 +55,6 @@ const COLORS = {
 
 const HOUR_HEIGHT = 60;
 const HOURS_IN_DAY = 24;
-
-// Fonction utilitaire pour obtenir l'icône du type d'activité
-const getActivityTypeIcon = (activityType?: string): string => {
-  switch (activityType) {
-    case 'Randonnée':
-      return '🥾';
-    case 'Courses':
-      return '🛒';
-    case 'Visite':
-      return '🏛️';
-    case 'Autre':
-      return '📍';
-    default:
-      return '🎯';
-  }
-};
 
 // Fonction utilitaire pour parser une date ISO sans conversion de fuseau horaire
 const parseLocalDateTime = (isoString: string): Date => {
@@ -687,7 +672,7 @@ const AdvancedPlanning: React.FC<AdvancedPlanningProps> = ({
         >
           <Text style={styles.eventTitle} numberOfLines={2}>
             {event.type === 'activity' && event.activityType ? 
-              `${getActivityTypeIcon(event.activityType)} ${event.title}` : 
+              `${getActivityTypeEmoji(event.activityType)} ${event.title}` : 
               event.title
             }
             {!canBeDragged && ' ⚠️'}
