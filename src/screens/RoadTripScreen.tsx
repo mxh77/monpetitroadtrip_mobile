@@ -6,7 +6,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5'; // Importer les icônes
 import { RootStackParamList, Roadtrip, File } from '../../types';
-import { FAB } from 'react-native-paper'; // Importer le bouton flottant
+import { FAB, Card, Badge } from 'react-native-paper'; // Importer le bouton flottant et les composants Material
 import Swipeable from 'react-native-gesture-handler/Swipeable'; // Importer Swipeable de react-native-gesture-handler
 import { checkDateConsistency } from '../utils/controls'; // Importer la fonction checkDateConsistency
 import Timetable from '../components/timetable/src'; // Importer Timetable
@@ -15,6 +15,7 @@ import rvIcon from '../../assets/icones/RV/rv_32.png';
 import { getMinStartDateTime } from '../utils/dateUtils';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { useNavigationContext } from '../utils/NavigationContext';
+import { getActivityTypeIcon, getActivityTypeEmoji, getActivityTypeColor } from '../utils/activityIcons';
 
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
@@ -418,6 +419,50 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return true;
   };
 
+  // Fonctions utilitaires pour le restyling des étapes
+
+  // Fonction pour déterminer le type d'activité principal d'une étape
+  const getStepMainActivityType = (step: any): string => {
+    if (step.type === 'Transport') return 'Transport';
+    
+    // Pour les étapes de type Stage, prendre le type de la première activité active
+    if (step.activities && step.activities.length > 0) {
+      const activeActivity = step.activities.find((activity: any) => activity.active !== false);
+      if (activeActivity && activeActivity.type) {
+        return activeActivity.type;
+      }
+    }
+    
+    // Par défaut, considérer comme une visite
+    return 'Visite';
+  };
+
+  // Fonction pour compter les éléments actifs d'une étape
+  const getStepActiveCounts = (step: any) => {
+    const activeAccommodations = step.accommodations ? 
+      step.accommodations.filter((acc: any) => acc.active !== false).length : 0;
+    const activeActivities = step.activities ? 
+      step.activities.filter((act: any) => act.active !== false).length : 0;
+    
+    return { accommodations: activeAccommodations, activities: activeActivities };
+  };
+
+  // Fonction pour obtenir l'icône de l'étape en fonction de son type
+  const getStepIcon = (step: any): string => {
+    if (step.type === 'Transport') return 'truck';
+    
+    const mainActivityType = getStepMainActivityType(step);
+    return getActivityTypeIcon(mainActivityType);
+  };
+
+  // Fonction pour obtenir la couleur de l'étape
+  const getStepColor = (step: any): string => {
+    if (step.type === 'Transport') return '#FF9800'; // Orange pour transport
+    
+    const mainActivityType = getStepMainActivityType(step);
+    return getActivityTypeColor(mainActivityType);
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -467,74 +512,107 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        renderItem={({ item, index }) => (
-          <>
-            {index > 0 && (
-              <View style={styles.travelInfoContainer}>
-                <View style={styles.travelInfoLine} />
-                <Image source={rvIcon} style={styles.travelIcon} />
-                <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
-                  <Text style={styles.travelText}>
-                    Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
-                  </Text>
-                  <Text style={styles.travelText}>
-                    Distance : {sortedSteps[index].distancePreviousStep}km
-                  </Text>
-                </View>
-                <View style={styles.travelInfoLine} />
-              </View>
-            )}
-            <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-              <TouchableOpacity
-                style={styles.item}
-                onPress={() => handleStepPress(item)}
-              >
-                <View style={styles.itemHeader}>
-                  <Icon
-                    name={item.type === 'Stage' ? 'bed' : 'flag'}
-                    size={20}
-                    color="#007BFF"
-                    style={styles.itemIcon}
-                  />
-                  <Text style={styles.itemTitle}>{item.name}</Text>
-                </View>
-                <Image
-                  source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
-                  style={styles.thumbnail}
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Icon name="arrow-right" size={16} color="green" style={{ marginRight: 5 }} />
-                    <Text style={styles.itemDateTime}>
-                      {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'UTC'
-                      })}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        renderItem={({ item, index }) => {
+          const mainActivityType = getStepMainActivityType(item);
+          const stepColor = getStepColor(item);
+          const stepIcon = getStepIcon(item);
+          const activeCounts = getStepActiveCounts(item);
+          const hasAlert = errors.some(error => error.stepId === item.id);
 
-                    <Icon name="arrow-right" size={16} color="red" style={{ marginHorizontal: 5 }} />
-                    <Text style={styles.itemDateTime}>
-                      {new Date(item.departureDateTime).toLocaleString('fr-FR', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'UTC'
-                      })}
+          return (
+            <>
+              {index > 0 && (
+                <View style={styles.travelInfoContainer}>
+                  <View style={styles.travelInfoLine} />
+                  <Image source={rvIcon} style={styles.travelIcon} />
+                  <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
+                    <Text style={styles.travelText}>
+                      Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
+                    </Text>
+                    <Text style={styles.travelText}>
+                      Distance : {sortedSteps[index].distancePreviousStep}km
                     </Text>
                   </View>
+                  <View style={styles.travelInfoLine} />
                 </View>
-              </TouchableOpacity>
-            </Swipeable>
-          </>
-        )}
+              )}
+              
+              <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+                <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
+                  {/* Header avec couleur thématique */}
+                  <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
+                    <View style={styles.stepHeaderLeft}>
+                      <View style={styles.stepIconContainer}>
+                        <Icon name={stepIcon} size={20} color="white" />
+                      </View>
+                      <View style={styles.stepHeaderInfo}>
+                        <Text style={styles.stepTitle} numberOfLines={1}>
+                          {getActivityTypeEmoji(mainActivityType)} {item.name}
+                        </Text>
+                        <Text style={styles.stepType}>{item.type}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.stepHeaderRight}>
+                      {hasAlert && (
+                        <Badge style={styles.alertBadge} size={18}>!</Badge>
+                      )}
+                      {activeCounts.accommodations > 0 && (
+                        <Badge style={styles.accommodationBadge} size={16}>{activeCounts.accommodations}</Badge>
+                      )}
+                      {activeCounts.activities > 0 && (
+                        <Badge style={styles.activityBadge} size={16}>{activeCounts.activities}</Badge>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Contenu principal */}
+                  <TouchableOpacity
+                    style={styles.stepCardContent}
+                    onPress={() => handleStepPress(item)}
+                  >
+                    {/* Thumbnail */}
+                    <Image
+                      source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
+                      style={styles.stepThumbnail}
+                    />
+
+                    {/* Informations de dates */}
+                    <View style={styles.stepDatesContainer}>
+                      <View style={styles.stepDateRow}>
+                        <Icon name="arrow-right" size={14} color="#28a745" style={styles.stepDateIcon} />
+                        <Text style={styles.stepDateLabel}>Arrivée:</Text>
+                        <Text style={styles.stepDateTime}>
+                          {new Date(item.arrivalDateTime).toLocaleString('fr-FR', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'UTC'
+                          })}
+                        </Text>
+                      </View>
+                      <View style={styles.stepDateRow}>
+                        <Icon name="arrow-right" size={14} color="#dc3545" style={styles.stepDateIcon} />
+                        <Text style={styles.stepDateLabel}>Départ:</Text>
+                        <Text style={styles.stepDateTime}>
+                          {new Date(item.departureDateTime).toLocaleString('fr-FR', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'UTC'
+                          })}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Card>
+              </Swipeable>
+            </>
+          );
+        }}
       />
       <FAB
         style={styles.fab}
@@ -639,7 +717,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   loadingContainer: {
     flex: 1,
@@ -652,6 +730,108 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
+  
+  // Nouveaux styles pour les cartes d'étapes modernes
+  stepCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  stepCardAlert: {
+    borderColor: '#ffc107',
+    borderWidth: 2,
+  },
+  stepCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 12,
+  },
+  stepHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepHeaderInfo: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  stepType: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'uppercase',
+    fontWeight: '500',
+  },
+  stepHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  alertBadge: {
+    backgroundColor: '#ffc107',
+  },
+  accommodationBadge: {
+    backgroundColor: '#28a745',
+  },
+  activityBadge: {
+    backgroundColor: '#17a2b8',
+  },
+  stepCardContent: {
+    padding: 16,
+  },
+  stepThumbnail: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  stepDatesContainer: {
+    marginTop: 8,
+  },
+  stepDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  stepDateIcon: {
+    marginRight: 8,
+    width: 16,
+  },
+  stepDateLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6c757d',
+    marginRight: 8,
+    minWidth: 50,
+  },
+  stepDateTime: {
+    fontSize: 12,
+    color: '#495057',
+    flex: 1,
+  },
+
+  // Styles existants (gardés pour compatibilité)
   item: {
     marginBottom: 16,
     borderWidth: 1,
