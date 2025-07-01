@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types';
 import config from '../config';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 
 // Props de navigation
 // Ajoutez 'Settings' dans RootStackParamList si besoin
@@ -16,6 +17,13 @@ export default function SettingsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // États pour le calcul des temps de trajet
+  const [showTravelTimeModal, setShowTravelTimeModal] = useState(false);
+  const [availableRoadtrips, setAvailableRoadtrips] = useState([]);
+  const [selectedRoadtrip, setSelectedRoadtrip] = useState(null);
+  const [travelTimeJob, setTravelTimeJob] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // Options disponibles pour le pas de déplacement
   const snapIntervalOptions = [
@@ -98,6 +106,102 @@ export default function SettingsScreen({ navigation }: Props) {
     }
   };
 
+  // Fonctions pour le calcul des temps de trajet
+  const fetchAvailableRoadtrips = async () => {
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const roadtrips = await response.json();
+        setAvailableRoadtrips(roadtrips);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des roadtrips:', error);
+    }
+  };
+
+  const startTravelTimeCalculation = async (roadtripId: string) => {
+    setIsCalculating(true);
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/refresh-travel-times/async`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 409) {
+        Alert.alert('Calcul en cours', 'Un calcul des temps de trajet est déjà en cours pour ce roadtrip.');
+        setIsCalculating(false);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}`);
+      }
+
+      const result = await response.json();
+      setTravelTimeJob(result);
+      
+      // Commencer le polling du statut
+      pollTravelTimeStatus(roadtripId, result.jobId);
+      
+    } catch (error) {
+      console.error('Erreur lors du démarrage du calcul:', error);
+      Alert.alert('Erreur', 'Impossible de démarrer le calcul des temps de trajet.');
+      setIsCalculating(false);
+    }
+  };
+
+  const pollTravelTimeStatus = async (roadtripId: string, jobId: string) => {
+    try {
+      const token = await getJwtToken();
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/travel-time-jobs/${jobId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const status = await response.json();
+        setTravelTimeJob(status);
+
+        if (status.status === 'running') {
+          // Continuer le polling toutes les 2 secondes
+          setTimeout(() => pollTravelTimeStatus(roadtripId, jobId), 2000);
+        } else if (status.status === 'completed') {
+          setIsCalculating(false);
+          // Afficher les résultats
+          const summary = status.results?.summary;
+          if (summary) {
+            Alert.alert(
+              'Calcul terminé !',
+              `Distance totale: ${summary.totalDistance?.toFixed(2)} km\n` +
+              `Temps total: ${Math.floor(summary.totalTravelTime / 60)}h ${summary.totalTravelTime % 60}m\n` +
+              `Étapes traitées: ${status.results.stepsProcessed}\n` +
+              `Erreurs: ${status.results.errors?.length || 0}`
+            );
+          } else {
+            Alert.alert('Calcul terminé !', 'Les temps de trajet ont été mis à jour.');
+          }
+        } else if (status.status === 'failed') {
+          setIsCalculating(false);
+          Alert.alert('Erreur', 'Le calcul des temps de trajet a échoué.');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du polling:', error);
+      setIsCalculating(false);
+    }
+  };
+
+  const openTravelTimeModal = () => {
+    fetchAvailableRoadtrips();
+    setShowTravelTimeModal(true);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}><ActivityIndicator size="large" /></View>
@@ -170,9 +274,136 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Section Calcul des temps de trajet */}
+      <Text style={styles.sectionTitle}>Maintenance des roadtrips</Text>
+      <Text style={styles.sectionDescription}>
+        Recalculez les distances et temps de trajet pour corriger d'éventuelles incohérences
+      </Text>
+      
+      <TouchableOpacity
+        style={styles.travelTimeButton}
+        onPress={openTravelTimeModal}
+        disabled={isCalculating}
+      >
+        <View style={styles.travelTimeButtonContent}>
+          <Icon name="route" size={20} color="#007AFF" style={styles.travelTimeIcon} />
+          <View style={styles.travelTimeTextContainer}>
+            <Text style={styles.travelTimeButtonText}>
+              Calculer les temps de trajet
+            </Text>
+            <Text style={styles.travelTimeButtonSubtext}>
+              Mise à jour automatique des distances et durées
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={16} color="#007AFF" />
+        </View>
+      </TouchableOpacity>
+
       {error && <Text style={styles.error}>{error}</Text>}
       <Button title={saving ? 'Sauvegarde...' : 'Enregistrer'} onPress={saveSettings} disabled={saving} />
       </ScrollView>
+      
+      {/* Modal pour le calcul des temps de trajet */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showTravelTimeModal}
+        onRequestClose={() => setShowTravelTimeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Calculer les temps de trajet</Text>
+            <Text style={styles.modalSubtitle}>
+              Sélectionnez un roadtrip pour recalculer automatiquement les distances et temps de trajet entre les étapes
+            </Text>
+            
+            {availableRoadtrips.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Icon name="map" size={48} color="#ccc" />
+                <Text style={styles.emptyStateText}>Aucun roadtrip disponible</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.roadtripList}>
+                {availableRoadtrips.map((roadtrip) => (
+                  <TouchableOpacity
+                    key={roadtrip._id}
+                    style={styles.roadtripItem}
+                    onPress={() => {
+                      setSelectedRoadtrip(roadtrip);
+                      setShowTravelTimeModal(false);
+                      startTravelTimeCalculation(roadtrip._id);
+                    }}
+                    disabled={isCalculating}
+                  >
+                    <View style={styles.roadtripItemContent}>
+                      <Icon name="map-marked-alt" size={20} color="#007AFF" />
+                      <View style={styles.roadtripItemText}>
+                        <Text style={styles.roadtripItemName}>{roadtrip.name}</Text>
+                        <Text style={styles.roadtripItemDetails}>
+                          {roadtrip.steps?.length || 0} étapes
+                        </Text>
+                      </View>
+                      <Icon name="chevron-right" size={16} color="#ccc" />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowTravelTimeModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de progression du calcul */}
+      {isCalculating && travelTimeJob && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={true}
+          onRequestClose={() => {}}
+        >
+          <View style={styles.progressModalOverlay}>
+            <View style={styles.progressModalContent}>
+              <Icon name="route" size={32} color="#007AFF" style={styles.progressIcon} />
+              <Text style={styles.progressTitle}>Calcul en cours...</Text>
+              <Text style={styles.progressSubtitle}>
+                {selectedRoadtrip?.name}
+              </Text>
+              
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressBarFill, 
+                      { width: `${travelTimeJob.progress?.percentage || 0}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {travelTimeJob.progress?.percentage || 0}%
+                </Text>
+              </View>
+              
+              <Text style={styles.progressDetails}>
+                {travelTimeJob.progress?.completed || 0} / {travelTimeJob.progress?.total || 0} étapes traitées
+              </Text>
+              
+              {travelTimeJob.estimatedDuration && (
+                <Text style={styles.progressEstimation}>
+                  Temps estimé : {travelTimeJob.estimatedDuration}
+                </Text>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -237,5 +468,206 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+
+  // Styles pour la section temps de trajet
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
+    color: '#333',
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  travelTimeButton: {
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    backgroundColor: '#f0f8ff',
+  },
+  travelTimeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  travelTimeIcon: {
+    marginRight: 12,
+  },
+  travelTimeTextContainer: {
+    flex: 1,
+  },
+  travelTimeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 2,
+  },
+  travelTimeButtonSubtext: {
+    fontSize: 12,
+    color: '#007AFF',
+  },
+
+  // Styles pour les modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 16,
+    padding: 24,
+    maxHeight: '80%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#666',
+    lineHeight: 20,
+  },
+  modalCancelButton: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+
+  // Styles pour la liste des roadtrips
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 12,
+  },
+  roadtripList: {
+    maxHeight: 300,
+  },
+  roadtripItem: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 8,
+    backgroundColor: '#f8f9fa',
+  },
+  roadtripItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  roadtripItemText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  roadtripItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  roadtripItemDetails: {
+    fontSize: 12,
+    color: '#666',
+  },
+
+  // Styles pour le modal de progression
+  progressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    width: '85%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  progressIcon: {
+    marginBottom: 16,
+  },
+  progressTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  progressSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  progressDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  progressEstimation: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });

@@ -81,14 +81,22 @@ export const checkDateConsistency = (roadtrip) => {
     const previousStep = steps[i - 1];
     const currentStep = steps[i];
 
-    const estimatedArrivalTime = new Date(previousStep.departureDateTime).getTime() + (currentStep.travelTime * 60 * 1000);
-    if (new Date(currentStep.arrivalDateTime).getTime() < estimatedArrivalTime) {
-      alertCount++;
-      errorMessages.push({
-        message: `Incohérence de la date d'arrivée :\n  - ${currentStep.name} - Arrivée : ${formatDateTimeUTC2Digits(currentStep.arrivalDateTime)}\n  - Temps de trajet estimé : ${formatDuration(currentStep.travelTime)}\n  - Step précédent : ${previousStep.name} - Départ : ${formatDateTimeUTC2Digits(previousStep.departureDateTime)}`,
-        stepId: currentStep._id,
-        stepType: currentStep.type
-      });
+    // Utiliser travelTimePreviousStep au lieu de travelTime (cohérent avec les données backend)
+    if (currentStep.travelTimePreviousStep) {
+      const estimatedArrivalTime = new Date(previousStep.departureDateTime).getTime() + (currentStep.travelTimePreviousStep * 60 * 1000);
+      if (new Date(currentStep.arrivalDateTime).getTime() < estimatedArrivalTime) {
+        alertCount++;
+        // Formater le temps correctement (en heures et minutes)
+        const hours = Math.floor(currentStep.travelTimePreviousStep / 60);
+        const minutes = currentStep.travelTimePreviousStep % 60;
+        const travelTimeFormatted = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        
+        errorMessages.push({
+          message: `Incohérence de la date d'arrivée :\n  - ${currentStep.name} - Arrivée : ${formatDateTimeUTC2Digits(currentStep.arrivalDateTime)}\n  - Temps de trajet estimé : ${travelTimeFormatted}\n  - Distance : ${currentStep.distancePreviousStep}km\n  - Step précédent : ${previousStep.name} - Départ : ${formatDateTimeUTC2Digits(previousStep.departureDateTime)}`,
+          stepId: currentStep._id,
+          stepType: currentStep.type
+        });
+      }
     }
   }
 
