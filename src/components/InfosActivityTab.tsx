@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Platform, Keyboard } from 'react-native';
-import { TextInput, Card, Portal } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Platform, Keyboard, Linking } from 'react-native';
+import { TextInput, Card, Portal, Button } from 'react-native-paper';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { newDateUTC } from '../utils/dateUtils';
 import { Dropdown } from 'react-native-element-dropdown';
 import { ACTIVITY_TYPES, ActivityType } from '../../types';
+import config from '../config';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.apiKey || '';
 
@@ -53,7 +54,90 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
         formState.endDateTime ? new Date(formState.endDateTime) : null
     );
 
+    // --- États Algolia ---
+    const [algoliaSuggestions, setAlgoliaSuggestions] = useState([]);
+    const [algoliaLoading, setAlgoliaLoading] = useState(false);
+    const [algoliaError, setAlgoliaError] = useState('');
+    const [algoliaTrail, setAlgoliaTrail] = useState(null);
+
     const addressInputContainerRef = useRef<View>(null);
+
+    // --- Fonctions Algolia ---
+    const getJwtToken = async () => '';
+
+    const fetchAlgoliaSuggestions = async () => {
+        setAlgoliaLoading(true);
+        setAlgoliaError('');
+        try {
+            const token = await getJwtToken();
+            const res = await fetch(`${config.BACKEND_URL}/activities/${formState._id}/search/algolia?hitsPerPage=5`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Erreur lors de la récupération des suggestions');
+            const data = await res.json();
+            setAlgoliaSuggestions(data.suggestions || []);
+        } catch (e) {
+            setAlgoliaError('Erreur lors de la récupération des suggestions');
+        } finally {
+            setAlgoliaLoading(false);
+        }
+    };
+
+    const linkAlgolia = async (item) => {
+        setAlgoliaLoading(true);
+        setAlgoliaError('');
+        try {
+            const token = await getJwtToken();
+            const res = await fetch(`${config.BACKEND_URL}/activities/${formState._id}/link/algolia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ objectID: item.objectID, name: item.name, slug: item.slug, updateActivityName: false }),
+            });
+            if (!res.ok) throw new Error('Erreur lors de l\'association');
+            updateFormState({ algoliaId: item.objectID });
+            setAlgoliaSuggestions([]);
+        } catch (e) {
+            setAlgoliaError('Erreur lors de l\'association');
+        } finally {
+            setAlgoliaLoading(false);
+        }
+    };
+
+    const unlinkAlgolia = () => {
+        updateFormState({ algoliaId: '' });
+    };
+
+    // Helper pour trouver le champ d'association Algolia
+    const getAlgoliaId = () => formState.algoliaId || '';
+
+    // Charger les infos de la randonnée associée si algoliaId existe
+    useEffect(() => {
+        const fetchAlgoliaTrail = async () => {
+            const algoliaId = getAlgoliaId();
+            if (!algoliaId) {
+                setAlgoliaTrail(null);
+                return;
+            }
+            setAlgoliaTrail(null);
+            try {
+                const token = await getJwtToken();
+                const res = await fetch(`${config.BACKEND_URL}/activities/search/algolia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ query: '', indexName: 'alltrails_primary_fr-FR', hitsPerPage: 1, filters: `objectID:${algoliaId}` }),
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    setAlgoliaTrail(data[0]);
+                }
+            } catch (e) {
+                // ignore
+            }
+        };
+        fetchAlgoliaTrail();
+    }, [formState]);
 
     // Effet pour debounce la recherche d'adresse
     useEffect(() => {
@@ -661,6 +745,77 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
         }
     }, [formState, updateFormState, addressInput, showPicker, formConfirmationDate, formStartDate, formStartTime, formEndDate, formEndTime]);
 
+    const renderAlgoliaSection = () => {
+        return (
+            <Card style={styles.fieldCard}>
+                <Card.Content>
+                    {getAlgoliaId() && typeof getAlgoliaId() === 'string' && getAlgoliaId().length > 0 ? (
+                        <View style={{ marginBottom: 10 }}>
+                            <Text style={{ marginBottom: 8 }}>
+                                Randonnée liée : <Text style={{ fontWeight: 'bold' }}>{algoliaTrail?.name || getAlgoliaId()}</Text>
+                            </Text>
+                            <Button 
+                                mode="text" 
+                                onPress={() => {
+                                    let url = undefined;
+                                    if (algoliaTrail?.url) {
+                                        url = algoliaTrail.url;
+                                    } else if (algoliaTrail?.slug) {
+                                        url = `https://www.alltrails.com/fr/${algoliaTrail.slug}`;
+                                    } else if (getAlgoliaId() && getAlgoliaId().startsWith('trail-')) {
+                                        url = `https://www.alltrails.com/fr/trail/${getAlgoliaId().replace('trail-', '')}`;
+                                    }
+                                    if (url) Linking.openURL(url);
+                                }} 
+                                style={{ marginTop: 8 }}
+                            >
+                                Voir sur AllTrails
+                            </Button>
+                            <Button 
+                                mode="outlined" 
+                                onPress={unlinkAlgolia} 
+                                style={{ marginTop: 8 }}
+                            >
+                                Dissocier
+                            </Button>
+                        </View>
+                    ) : (
+                        <>
+                            <Button 
+                                mode="contained" 
+                                onPress={fetchAlgoliaSuggestions} 
+                                loading={algoliaLoading} 
+                                style={{ marginBottom: 10 }}
+                                disabled={!formState._id}
+                            >
+                                Suggestions automatiques
+                            </Button>
+                            {algoliaSuggestions.length > 0 && (
+                                <View style={{ marginBottom: 10 }}>
+                                    {algoliaSuggestions.map((item) => (
+                                        <View key={item.objectID} style={{ marginBottom: 8, backgroundColor: '#fff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#E0E0E0' }}>
+                                            <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>{item.name}</Text>
+                                            <Text style={{ marginBottom: 2 }}>Distance : {item.distanceKm ? `${item.distanceKm} km` : 'N/A'}</Text>
+                                            <Text style={{ marginBottom: 2 }}>Note : {item.rating || 'N/A'} ({item.numReviews || 0} avis)</Text>
+                                            <Text style={{ marginBottom: 8 }}>Lieu : {item.slug}</Text>
+                                            <Button mode="text" onPress={() => Linking.openURL(item.url)} style={{ marginBottom: 4 }}>
+                                                Voir sur AllTrails
+                                            </Button>
+                                            <Button mode="contained" onPress={() => linkAlgolia(item)}>
+                                                Associer
+                                            </Button>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                            {algoliaError ? <Text style={{ color: 'red', marginTop: 8 }}>{algoliaError}</Text> : null}
+                        </>
+                    )}
+                </Card.Content>
+            </Card>
+        );
+    };
+
     const renderContent = () => {
         const data = [
             { type: 'sectionTitle', title: '🎯 Informations générales' },
@@ -679,6 +834,8 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
             { type: 'sectionTitle', title: '💰 Tarification & Notes' },
             { type: 'field', field: 'price' },
             { type: 'field', field: 'notes' },
+            { type: 'sectionTitle', title: '🥾 Randonnée associée (Algolia)' },
+            { type: 'algolia' },
             { type: 'spacer' },
         ];
 
@@ -688,6 +845,8 @@ const InfosActivityTab = ({ formState, updateFormState, step }) => {
                     return <Text style={styles.sectionTitle}>{item.title}</Text>;
                 case 'field':
                     return renderInputField(item.field);
+                case 'algolia':
+                    return renderAlgoliaSection();
                 case 'spacer':
                     return <View style={{ height: 50 }} />;
                 default:
