@@ -1,23 +1,45 @@
 # Guide d'Utilisation des Scripts de Test Mémoire Automatisés
 
+> ⚠️ **NOUVEAU** : Les fichiers ont été réorganisés ! Utilisez `migrate-memory-tests.bat` pour migrer vers la nouvelle structure.
+
+## 📁 Nouvelle Structure
+
+```
+testing/
+├── memory/
+│   ├── scripts/         # Scripts de test (.bat, .sh)
+│   └── results/         # Résultats automatiques (.csv, .txt)
+└── *.js                # Scripts de performance
+```
+
 ## Vue d'ensemble
 
 Nous avons créé 3 scripts différents pour tester les optimisations mémoire de manière automatisée :
 
-1. **`automated-incremental-test.bat`** - Test interactif avec menu
-2. **`fully-automated-test.bat`** - Test entièrement automatisé
-3. **`incremental-memory-test.bat`** - Script original (nécessite plus d'interaction)
+1. **`testing/memory/scripts/automated-incremental-test.bat`** - Test interactif avec menu (Recommandé)
+2. **`testing/memory/scripts/fully-automated-test.bat`** - Test entièrement automatisé
+3. **`testing/memory/scripts/incremental-memory-test.bat`** - Script original (nécessite plus d'interaction)
 
-## 1. Script Interactif avec Menu (`automated-incremental-test.bat`)
+## 🚀 Démarrage Rapide
 
-### Fonctionnalités
-- Menu interactif pour choisir la phase à tester
-- Test d'une seule phase ou test complet
-- Instructions détaillées pour chaque optimisation
-- Affichage des résultats précédents
-
-### Utilisation
+### Migration (Si première utilisation)
 ```bash
+# Migrer les scripts vers la nouvelle structure
+migrate-memory-tests.bat
+
+# Ou utiliser le lanceur direct
+run-memory-tests.bat
+```
+
+### 1. Script Interactif avec Menu (Recommandé)
+
+#### Utilisation
+```bash
+# Option 1: Lanceur depuis la racine
+run-memory-tests.bat
+
+# Option 2: Direct
+cd testing/memory/scripts
 automated-incremental-test.bat
 ```
 
@@ -36,20 +58,22 @@ automated-incremental-test.bat
 - Instructions claires pour chaque optimisation
 - Navigation facile entre les options
 
-## 2. Script Entièrement Automatisé (`fully-automated-test.bat`)
+### 2. Script Entièrement Automatisé
 
-### Fonctionnalités
+#### Utilisation
+```bash
+# Direct
+cd testing/memory/scripts
+fully-automated-test.bat
+```
+
+#### Fonctionnalités
 - Test automatique de toutes les phases avec délais
 - Navigation automatique simulée
 - Analyse automatique des résultats
 - Calcul automatique des améliorations
 
-### Utilisation
-```bash
-fully-automated-test.bat
-```
-
-### Prérequis
+#### Prérequis
 - L'app doit être installée et fonctionnelle
 - Toutes les optimisations doivent être implémentées dans le code
 - Vous devez être sur l'écran RoadTripsScreen au début
@@ -125,9 +149,17 @@ useEffect(() => {
 - **CRITIQUE** : > 50 MB d'augmentation
 
 ### Fichiers de Résultats
-- Format CSV avec timestamp
+- Format CSV avec timestamp automatique
+- Sauvegardés dans `testing/memory/results/`
 - Colonnes : Date, Time, Phase, PSS_Before_KB, PSS_After_KB, Diff_KB, Diff_MB, Status
 - Analyse automatique des améliorations
+
+## 📊 Localisation des Résultats
+
+Les résultats sont automatiquement sauvegardés dans :
+- `testing/memory/results/automated_optimization_results_AAAAMMJJ.csv`
+- `testing/memory/results/fully_automated_test_AAAAMMJJ.csv`
+- `testing/memory/results/logcat*.txt`
 
 ## Méthodologie de Test
 

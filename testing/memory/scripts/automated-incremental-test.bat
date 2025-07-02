@@ -3,7 +3,7 @@ chcp 65001 >nul
 REM Script de test automatise pour les optimisations memoire incrementales
 
 set PACKAGE_NAME=com.maxime.heron.monpetitroadtrip.debug
-set RESULTS_FILE=automated_optimization_results_%date:~-4,4%%date:~-10,2%%date:~-7,2%.csv
+set RESULTS_FILE=..\results\automated_optimization_results_%date:~-4,4%%date:~-10,2%%date:~-7,2%.csv
 
 echo ===== TEST AUTOMATISE DES OPTIMISATIONS INCREMENTALES =====
 echo.

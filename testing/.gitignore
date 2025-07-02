@@ -1,0 +1,20 @@
+# Résultats de tests mémoire - Ne pas versionner
+testing/memory/results/*.csv
+testing/memory/results/*.txt
+testing/memory/results/*.log
+
+# Fichiers temporaires de tests
+optimization_results_*.csv
+automated_optimization_results_*.csv
+fully_automated_test_*.csv
+memory_test_*.csv
+logcat*.txt
+
+# Fichiers de sauvegarde
+*.bak
+*.backup
+*_backup.*
+
+# Dossiers temporaires
+temp/
+tmp/

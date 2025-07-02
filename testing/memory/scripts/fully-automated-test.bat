@@ -3,7 +3,7 @@ chcp 65001 >nul
 REM Script de test entierement automatise avec delais
 
 set PACKAGE_NAME=com.maxime.heron.monpetitroadtrip.debug
-set RESULTS_FILE=fully_automated_test_%date:~-4,4%%date:~-10,2%%date:~-7,2%.csv
+set RESULTS_FILE=..\results\fully_automated_test_%date:~-4,4%%date:~-10,2%%date:~-7,2%.csv
 set DELAY_SECONDS=10
 
 echo ===== TEST ENTIEREMENT AUTOMATISE =====
