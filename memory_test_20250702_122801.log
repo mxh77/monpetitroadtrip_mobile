@@ -1,0 +1,26 @@
+--- AVANT navigation vers RoadTripScreen ---
+           TOTAL PSS:   672429            TOTAL RSS:   856248       TOTAL SWAP PSS:       14
+           TOTAL PSS:   664093            TOTAL RSS:   847912       TOTAL SWAP PSS:       14
+Détails par composant:
+  Native Heap   321196   321184        4        3   324072   404204   345191    54557
+  Dalvik Heap    26588    25156     1392        5    31416   100550    25138    75412
+        Stack     4112     4112        0        0     4116                           
+         Native Heap:   321184                         324072
+               Stack:     4112                           4116
+            Graphics:   174268                         174268
+       Private Other:    48656
+Timestamp: Wed, Jul  2, 2025 12:28:06 PM
+
+--- APRÈS navigation vers RoadTripScreen ---
+           TOTAL PSS:   705493            TOTAL RSS:   889352       TOTAL SWAP PSS:       14
+           TOTAL PSS:   666940            TOTAL RSS:   850800       TOTAL SWAP PSS:       14
+Détails par composant:
+  Native Heap   325072   325060        4        3   327948   405140   348260    52342
+  Dalvik Heap    27708    26276     1392        5    32536   105000    26250    78750
+        Stack     4140     4140        0        0     4144                           
+         Native Heap:   325060                         327948
+               Stack:     4140                           4144
+            Graphics:   174268                         174268
+       Private Other:    46060
+Timestamp: Wed, Jul  2, 2025 12:29:19 PM
+

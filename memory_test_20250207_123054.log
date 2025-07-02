@@ -1,0 +1,14 @@
+--- AVANT navigation --- 
+        TOTAL   608989   525732    57776       14   792848   510480   375182   130768
+           TOTAL PSS:   608989            TOTAL RSS:   792848       TOTAL SWAP PSS:       14
+        TOTAL   607377   524120    57776       14   791236   510096   374566   131000
+           TOTAL PSS:   607377            TOTAL RSS:   791236       TOTAL SWAP PSS:       14
+Timestamp: 02/07/2025 12:31:05,58 
+ 
+--- APRES navigation --- 
+        TOTAL   708554   625112    57880       14   892692   517489   383486   129310
+           TOTAL PSS:   708554            TOTAL RSS:   892692       TOTAL SWAP PSS:       14
+        TOTAL   674910   591476    57872       14   859048   515905   378373   132839
+           TOTAL PSS:   674910            TOTAL RSS:   859048       TOTAL SWAP PSS:       14
+Timestamp: 02/07/2025 12:31:21,40 
+ 

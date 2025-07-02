@@ -17,6 +17,83 @@ import { RefreshControl } from 'react-native-gesture-handler';
 import { useNavigationContext } from '../utils/NavigationContext';
 import { getActivityTypeIcon, getActivityTypeEmoji, getActivityTypeColor } from '../utils/activityIcons';
 
+// 🧪 Utilitaires de test mémoire
+interface MemoryStats {
+  jsHeapSizeLimit?: number;
+  totalJSHeapSize?: number;
+  usedJSHeapSize?: number;
+  timestamp: number;
+  context: string;
+}
+
+const getMemoryUsage = (context: string): MemoryStats => {
+  const timestamp = Date.now();
+  
+  // Tentative d'accès aux métriques de performance (si disponibles)
+  // @ts-ignore - Les métriques mémoire ne sont pas toujours disponibles sur toutes les plateformes
+  if (global.performance && (global.performance as any).memory) {
+    const memory = (global.performance as any).memory;
+    return {
+      jsHeapSizeLimit: memory.jsHeapSizeLimit,
+      totalJSHeapSize: memory.totalJSHeapSize,
+      usedJSHeapSize: memory.usedJSHeapSize,
+      timestamp,
+      context
+    };
+  }
+  
+  // Fallback pour React Native
+  return {
+    timestamp,
+    context
+  };
+};
+
+const formatMemorySize = (bytes?: number): string => {
+  if (!bytes) return 'N/A';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(2)} MB`;
+};
+
+const logMemoryComparison = (before: MemoryStats, after: MemoryStats) => {
+  console.log('🧪 ===== TEST MÉMOIRE =====');
+  console.log(`📊 Contexte: ${before.context} → ${after.context}`);
+  console.log(`⏱️  Durée: ${after.timestamp - before.timestamp}ms`);
+  
+  if (before.usedJSHeapSize && after.usedJSHeapSize) {
+    const diff = after.usedJSHeapSize - before.usedJSHeapSize;
+    const percentage = ((diff / before.usedJSHeapSize) * 100).toFixed(2);
+    
+    console.log(`💾 Mémoire JS utilisée:`);
+    console.log(`   Avant: ${formatMemorySize(before.usedJSHeapSize)}`);
+    console.log(`   Après: ${formatMemorySize(after.usedJSHeapSize)}`);
+    console.log(`   Différence: ${diff > 0 ? '+' : ''}${formatMemorySize(diff)} (${percentage}%)`);
+    
+    if (before.totalJSHeapSize && after.totalJSHeapSize) {
+      console.log(`📈 Heap total:`);
+      console.log(`   Avant: ${formatMemorySize(before.totalJSHeapSize)}`);
+      console.log(`   Après: ${formatMemorySize(after.totalJSHeapSize)}`);
+    }
+    
+    // Alertes pour les fuites importantes
+    if (diff > 10 * 1024 * 1024) { // Plus de 10MB
+      console.warn('⚠️  ALERTE: Possible fuite mémoire JS détectée (+10MB)');
+    } else if (diff > 5 * 1024 * 1024) { // Plus de 5MB
+      console.warn('⚠️  ATTENTION: Augmentation mémoire JS significative (+5MB)');
+    } else if (diff < 0) {
+      console.log('✅ Mémoire JS libérée correctement');
+    }
+  } else {
+    console.log('ℹ️  Métriques mémoire JS détaillées non disponibles sur cette plateforme');
+  }
+  
+  // Information complémentaire sur vos mesures ADB
+  console.log('📱 Pour mesures système complètes (PSS), utilisez:');
+  console.log('   adb shell dumpsys meminfo com.maxime.heron.monpetitroadtrip.debug | findstr "TOTAL PSS"');
+  
+  console.log('🧪 =========================');
+};
+
 type Props = StackScreenProps<RootStackParamList, 'RoadTrip'>;
 
 const Tab = createBottomTabNavigator();
@@ -31,6 +108,10 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [dragSnapInterval, setDragSnapInterval] = useState(15); // Pas de déplacement en minutes (défaut: 15min)
   const [currentTab, setCurrentTab] = useState(initialTab || 'Liste des étapes');
+  
+  // 🧪 États pour le monitoring mémoire
+  const memoryStatsRef = useRef<MemoryStats | null>(null);
+  const loadedImagesRef = useRef<Set<string>>(new Set()); // Tracking des images chargées
   
   // Contexte de navigation pour gérer le retour automatique au Planning (optionnel)
   let pendingPlanningNavigation = false;
@@ -52,6 +133,14 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 RoadTripScreen focus, pendingPlanningNavigation:', pendingPlanningNavigation);
+      
+      // 🧪 Mesure mémoire au focus
+      const focusMemory = getMemoryUsage('Focus sur RoadTripScreen');
+      if (memoryStatsRef.current) {
+        logMemoryComparison(memoryStatsRef.current, focusMemory);
+        memoryStatsRef.current = focusMemory; // Mise à jour de la référence
+      }
+      
       if (pendingPlanningNavigation) {
         console.log('🎯 Navigation automatique vers l\'onglet Planning');
         // Utiliser setTimeout pour laisser le temps au composant de se rendre
@@ -79,6 +168,50 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     console.log('🔄 RoadTripScreen - Paramètres reçus:', { roadtripId, initialTab, tabInitialRouteName });
   }, [roadtripId, initialTab, tabInitialRouteName]);
 
+  // 🔍 Monitoring mémoire et lifecycle
+  useEffect(() => {
+    console.log('🚀 RoadTripScreen - Composant monté');
+    
+    // 🧪 Mesure mémoire initiale
+    memoryStatsRef.current = getMemoryUsage('Montage du composant');
+    console.log('🧪 Mémoire au montage:', memoryStatsRef.current);
+    
+    // Forcer le garbage collector périodiquement (si disponible)
+    const memoryCleanupInterval = setInterval(() => {
+      if (global.gc) {
+        console.log('🧹 Nettoyage mémoire forcé');
+        global.gc();
+        
+        // 🧪 Mesure après nettoyage
+        const currentMemory = getMemoryUsage('Après nettoyage forcé');
+        if (memoryStatsRef.current) {
+          logMemoryComparison(memoryStatsRef.current, currentMemory);
+        }
+      }
+    }, 15000); // Réduire de 30s à 15s pour nettoyage plus fréquent
+    
+    return () => {
+      console.log('🔄 RoadTripScreen - Composant démonté - Nettoyage complet');
+      
+      // 🧪 Mesure mémoire avant démontage
+      const finalMemory = getMemoryUsage('Démontage du composant');
+      if (memoryStatsRef.current) {
+        logMemoryComparison(memoryStatsRef.current, finalMemory);
+      }
+      
+      clearInterval(memoryCleanupInterval);
+      
+      // Nettoyage explicite des références
+      setRoadtrip(null);
+      setErrors([]);
+      memoryStatsRef.current = null;
+      
+      // 🧪 Nettoyage tracking des images
+      console.log(`🖼️ Images chargées durant la session: ${loadedImagesRef.current.size}`);
+      loadedImagesRef.current.clear();
+    };
+  }, []);
+
   const getJwtToken = async () => '';
 
   const loadUserSettings = async () => {
@@ -100,13 +233,17 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
   const fetchRoadtrip = async (signal?: AbortSignal) => {
     setLoading(true); // Commencez le chargement
+    
+    // 🧪 Mesure mémoire avant le fetch
+    const beforeFetch = getMemoryUsage('Avant fetchRoadtrip');
+    
     try {
       const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`, {
         signal // Ajouter le signal d'abort
       });
       const data = await response.json();
       console.log('🔍 Données brutes de l\'API - Nombre d\'étapes:', data.steps?.length || 0);
-      console.log('🔍 Données brutes de l\'API:', data);
+      // console.log('🔍 Données brutes de l\'API:', data); // Désactivé pour éviter la saturation des logs
 
       // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
       const { alerts, errorMessages } = checkDateConsistency(data);
@@ -149,13 +286,17 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
       setRoadtrip(filteredData);
       console.log('🔍 Roadtrip récupéré - Nombre d\'étapes filtrées:', filteredData.steps?.length || 0);
-      console.log('Roadtrip récupéré:', filteredData);
+      // console.log('Roadtrip récupéré:', filteredData); // Désactivé pour éviter la saturation des logs
 
     } catch (error) {
       console.error('Erreur lors de la récupération du roadtrip:', error);
       handleBackendError(error, 'lors de la récupération du roadtrip');
     } finally {
       setLoading(false); // Terminez le chargement
+      
+      // 🧪 Mesure mémoire après le fetch
+      const afterFetch = getMemoryUsage('Après fetchRoadtrip');
+      logMemoryComparison(beforeFetch, afterFetch);
     }
   };
 
@@ -218,6 +359,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     
     // Cleanup : annuler la requête si le composant se démonte
     return () => {
+      console.log('🧹 Cleanup: Annulation des requêtes et listeners');
       controller.abort();
       unsubscribe();
     };
@@ -234,7 +376,10 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     });
 
     // Nettoyage à la désactivation du composant
-    return unsubscribe;
+    return () => {
+      console.log('🧹 Cleanup: Suppression du beforeRemove listener');
+      unsubscribe();
+    };
   }, [navigation]);
 
   // Afficher une icône de notification et paramètres en haut à droite
@@ -532,6 +677,11 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     });
   }, [roadtrip?.steps, errors, getStepMainActivityType, getStepColor, getStepIcon, getStepActiveCounts]);
 
+  // 🔍 Monitoring des re-renders après la déclaration de sortedSteps
+  useEffect(() => {
+    console.log('🔄 RoadTripScreen - Re-render détecté, sortedSteps:', sortedSteps?.length || 0);
+  }, [sortedSteps]);
+
   const getTravelInfoBackgroundColor = useCallback((note) => {
     switch (note) {
       case 'ERROR':
@@ -615,14 +765,38 @@ export default function RoadTripScreen({ route, navigation }: Props) {
               style={styles.stepCardContent}
               onPress={() => handleStepPress(item)}
             >
-              {/* Thumbnail optimisé avec lazy loading */}
+              {/* Thumbnail optimisé avec gestion mémoire stricte */}
               <Image
                 source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
                 style={styles.stepThumbnail}
                 resizeMode="cover"
                 defaultSource={require('../../assets/default-thumbnail.png')}
                 fadeDuration={150}
-                progressiveRenderingEnabled={true}
+                progressiveRenderingEnabled={false}
+                // Optimisations anti-fuite mémoire
+                onLoad={() => {
+                  console.log('🖼️ Image chargée:', item.name);
+                  // 🧪 Tracking des images chargées
+                  if (item.thumbnail?.url) {
+                    loadedImagesRef.current.add(item.thumbnail.url);
+                    console.log(`🧪 Total images en mémoire: ${loadedImagesRef.current.size}`);
+                  }
+                }}
+                onError={(error) => {
+                  console.warn('❌ Erreur image:', error.nativeEvent.error);
+                  // Retirer de la liste si erreur
+                  if (item.thumbnail?.url) {
+                    loadedImagesRef.current.delete(item.thumbnail.url);
+                  }
+                }}
+                // Forcer la libération mémoire
+                onLoadEnd={() => {
+                  // Image chargée, peut libérer les ressources temporaires
+                  if (global.gc && loadedImagesRef.current.size > 5) { // Réduire de 10 à 5
+                    console.log('🧹 Trop d\'images en mémoire, nettoyage forcé');
+                    global.gc();
+                  }
+                }}
               />
 
               {/* Informations de dates - utilisation des dates pré-calculées */}
@@ -662,7 +836,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   }
 
   console.log('🔍 Sorted steps - Nombre d\'étapes triées:', sortedSteps.length);
-  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
+  // console.log('Sorted steps:', sortedSteps); // Désactivé pour éviter la saturation des logs
 
   const StepList = () => (
     <View style={styles.container}>
@@ -674,16 +848,19 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={renderStepItem}
-        // Optimisations de performance FlatList équilibrées
+        // Optimisations de performance FlatList - Mode économie mémoire AGGRESSIVE
         removeClippedSubviews={true}
-        initialNumToRender={10}
-        maxToRenderPerBatch={5}
-        updateCellsBatchingPeriod={50}
-        windowSize={10}
+        initialNumToRender={2}                    // Réduire de 3 à 2
+        maxToRenderPerBatch={2}                   // Réduire de 3 à 2
+        updateCellsBatchingPeriod={150}           // Augmenter de 100 à 150
+        windowSize={3}                            // Réduire de 5 à 3
         // getItemLayout temporairement désactivé - cause des saccades
         // getItemLayout={getItemLayout}
-        scrollEventThrottle={16}
+        scrollEventThrottle={32}                  // Augmenter de 16 à 32
         legacyImplementation={false}
+        // Anti-fuite mémoire RENFORCÉE
+        onEndReachedThreshold={0.3}               // Réduire de 0.5 à 0.3
+        disableVirtualization={false}
       />
       <FAB
         style={styles.fab}
@@ -874,7 +1051,7 @@ const styles = StyleSheet.create({
   },
   stepThumbnail: {
     width: '100%',
-    height: 160,
+    height: 120, // Réduit de 160 à 120 pour économiser la mémoire
     borderRadius: 8,
     marginBottom: 12,
   },
