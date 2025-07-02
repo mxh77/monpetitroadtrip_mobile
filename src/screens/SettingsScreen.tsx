@@ -130,7 +130,7 @@ export default function SettingsScreen({ navigation }: Props) {
     setIsCalculating(true);
     try {
       const token = await getJwtToken();
-      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/refresh-travel-times/async`, {
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/travel-time/refresh/async`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ export default function SettingsScreen({ navigation }: Props) {
   const pollTravelTimeStatus = async (roadtripId: string, jobId: string) => {
     try {
       const token = await getJwtToken();
-      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/travel-time-jobs/${jobId}/status`, {
+      const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/travel-time/jobs/${jobId}/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

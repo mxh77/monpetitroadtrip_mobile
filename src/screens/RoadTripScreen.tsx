@@ -32,8 +32,18 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const [dragSnapInterval, setDragSnapInterval] = useState(15); // Pas de déplacement en minutes (défaut: 15min)
   const [currentTab, setCurrentTab] = useState(initialTab || 'Liste des étapes');
   
-  // Contexte de navigation pour gérer le retour automatique au Planning
-  const { pendingPlanningNavigation, clearPendingNavigation } = useNavigationContext();
+  // Contexte de navigation pour gérer le retour automatique au Planning (optionnel)
+  let pendingPlanningNavigation = false;
+  let clearPendingNavigation = () => {};
+  
+  try {
+    const navigationContext = useNavigationContext();
+    pendingPlanningNavigation = navigationContext.pendingPlanningNavigation;
+    clearPendingNavigation = navigationContext.clearPendingNavigation;
+  } catch (error) {
+    // Contexte non disponible, utiliser les valeurs par défaut
+    console.warn('NavigationContext non disponible, fonctionnalité de navigation automatique désactivée');
+  }
   
   // Déterminer l'onglet initial (par défaut: Liste des étapes, ou Planning si spécifié)
   const [tabInitialRouteName] = useState(initialTab || 'Liste des étapes');
@@ -473,22 +483,6 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return getActivityTypeColor(mainActivityType);
   }, [getStepMainActivityType]);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007BFF" />
-      </View>
-    );
-  }
-
-  if (!roadtrip) {
-    return (
-      <View style={styles.container}>
-        <Text>Erreur lors de la récupération du roadtrip.</Text>
-      </View>
-    );
-  }
-
   // Optimisation : mémoïsation du tri des steps
   const sortedSteps = useMemo(() => {
     if (!roadtrip?.steps) return [];
@@ -518,8 +512,6 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       })
     }));
   }, [roadtrip?.steps]);
-
-  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
   const getTravelInfoBackgroundColor = useCallback((note) => {
     switch (note) {
@@ -631,7 +623,25 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         </Swipeable>
       </>
     );
-  }, [errors, sortedSteps, getTravelInfoBackgroundColor]);
+  }, [errors, sortedSteps, getTravelInfoBackgroundColor, getStepMainActivityType, getStepColor, getStepIcon, getStepActiveCounts, renderRightActions]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007BFF" />
+      </View>
+    );
+  }
+
+  if (!roadtrip) {
+    return (
+      <View style={styles.container}>
+        <Text>Erreur lors de la récupération du roadtrip.</Text>
+      </View>
+    );
+  }
+
+  console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
   const StepList = () => (
     <View style={styles.container}>

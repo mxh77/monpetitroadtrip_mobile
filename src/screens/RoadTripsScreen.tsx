@@ -123,10 +123,23 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
 
   // Optimisation : formatage des dates pré-calculé
   const roadtripsWithFormattedDates = useMemo(() => {
-    return roadtrips.map(roadtrip => ({
-      ...roadtrip,
-      formattedDateRange: `${roadtrip.startDateTime?.toLocaleDateString?.('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) || ''} - ${roadtrip.endDateTime?.toLocaleDateString?.('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) || ''}`
-    }));
+    return roadtrips.map(roadtrip => {
+      // Convertir les chaînes de caractères en objets Date
+      const startDate = roadtrip.startDateTime ? new Date(roadtrip.startDateTime) : null;
+      const endDate = roadtrip.endDateTime ? new Date(roadtrip.endDateTime) : null;
+      
+      const startDateStr = startDate && !isNaN(startDate.getTime()) 
+        ? startDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) 
+        : '';
+      const endDateStr = endDate && !isNaN(endDate.getTime()) 
+        ? endDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) 
+        : '';
+      
+      return {
+        ...roadtrip,
+        formattedDateRange: startDateStr && endDateStr ? `${startDateStr} - ${endDateStr}` : ''
+      };
+    });
   }, [roadtrips]);
 
   // Optimisation : mémoïsation du rendu des éléments

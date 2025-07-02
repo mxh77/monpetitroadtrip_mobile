@@ -104,7 +104,7 @@ export default function StepStoryScreen({ route, navigation }: Props) {
   const pollStatus = async (jobId: string) => {
     try {
       const token = await getJwtToken();
-      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/status/${jobId}`, {
+      const response = await fetch(`${config.BACKEND_URL}/steps/${stepId}/story/${jobId}/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
