@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script ameliore de test de fuites memoire pour Windows
 REM Version avec meilleure extraction des donnees PSS

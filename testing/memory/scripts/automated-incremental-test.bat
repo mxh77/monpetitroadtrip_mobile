@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script de test automatise pour les optimisations memoire incrementales
 
@@ -8,7 +8,7 @@ set RESULTS_FILE=..\results\automated_optimization_results_%date:~-4,4%%date:~-1
 echo ===== TEST AUTOMATISE DES OPTIMISATIONS INCREMENTALES =====
 echo.
 
-REM Vérifier si le téléphone est connecté
+REM Verifier si le telephone est connecte
 adb devices | findstr "device" >nul
 if errorlevel 1 (
     echo ERREUR: Aucun appareil Android detecte
@@ -17,7 +17,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Vérifier si l'app est installée
+REM Verifier si l'app est installee
 adb shell pm list packages | findstr "%PACKAGE_NAME%" >nul
 if errorlevel 1 (
     echo ERREUR: Application non trouvee
@@ -93,7 +93,7 @@ echo.
 echo Appuyez sur ENTREE pour commencer...
 pause >nul
 
-REM Créer le header CSV si nécessaire
+REM Creer le header CSV si necessaire
 if not exist "%RESULTS_FILE%" (
     echo Date,Time,Phase,PSS_Before_KB,PSS_After_KB,Diff_KB,Diff_MB,Status > %RESULTS_FILE%
 )
@@ -148,7 +148,7 @@ call :show_summary
 pause
 goto show_menu
 
-REM Fonction pour effectuer un test mémoire
+REM Fonction pour effectuer un test memoire
 :perform_memory_test
 set test_phase=%~1
 set before_pss=0
@@ -157,7 +157,7 @@ set after_pss=0
 echo.
 echo [%time%] Test de la phase: %test_phase%
 
-REM Vérifier l'état de l'app
+REM Verifier l'etat de l'app
 echo Verification de l'app...
 adb shell am force-stop %PACKAGE_NAME% 2>nul
 timeout /t 2 >nul
@@ -221,7 +221,7 @@ REM Calculs
 set /a diff_pss=%after_pss% - %before_pss%
 set /a diff_mb=%diff_pss% / 1024
 
-REM Détermination du status
+REM Determination du status
 set status=EXCELLENT
 if %diff_pss% gtr 10240 set status=BON
 if %diff_pss% gtr 20480 set status=MODERE
@@ -238,7 +238,7 @@ echo %date%,%time%,%test_phase%,%before_pss%,%after_pss%,%diff_pss%,%diff_mb%,%s
 echo Test de la phase %test_phase% termine
 goto :eof
 
-REM Afficher les résultats
+REM Afficher les resultats
 :show_results
 echo.
 echo ===== RESULTATS PRECEDENTS =====
@@ -251,7 +251,7 @@ echo.
 pause
 goto show_menu
 
-REM Afficher le résumé final
+REM Afficher le resume final
 :show_summary
 echo.
 echo ===== RESUME DES RESULTATS =====

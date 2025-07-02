@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script de test comparatif AVANT/APRES optimisations
 REM Utilise le MEME roadtrip pour les deux tests
@@ -13,7 +13,7 @@ echo IMPORTANT: Ce test doit utiliser le MEME roadtrip
 echo pour les deux mesures afin d'etre representatif.
 echo.
 
-REM Vérification application
+REM Verification application
 echo Verification de l'application...
 adb shell pidof %PACKAGE_NAME% >nul 2>&1
 if errorlevel 1 (

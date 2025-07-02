@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script de test incrementiel des optimisations memoire
 
@@ -8,7 +8,7 @@ set RESULTS_FILE=..\results\optimization_results_%date:~-4,4%%date:~-10,2%%date:
 echo ===== TEST INCREMENTIEL DES OPTIMISATIONS =====
 echo.
 
-REM Créer le header CSV
+REM Creer le header CSV
 echo Date,Time,Phase,PSS_Before_KB,PSS_After_KB,Diff_KB,Diff_MB,Status > %RESULTS_FILE%
 
 REM Fonction pour mesurer et enregistrer

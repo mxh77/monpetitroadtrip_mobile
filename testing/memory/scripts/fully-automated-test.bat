@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script de test entierement automatise avec delais
 
@@ -21,10 +21,10 @@ echo.
 echo Appuyez sur ENTREE pour commencer le test automatique...
 pause >nul
 
-REM Créer le header CSV
+REM Creer le header CSV
 echo Date,Time,Phase,PSS_Before_KB,PSS_After_KB,Diff_KB,Diff_MB,Status,RoadTrip > %RESULTS_FILE%
 
-REM Redémarrer l'app
+REM Redemarrer l'app
 echo Redemarrage de l'application...
 adb shell am force-stop %PACKAGE_NAME%
 timeout /t 3 >nul
@@ -69,7 +69,7 @@ set after_pss=0
 echo.
 echo [%time%] Phase: %test_phase%
 
-REM Retour à l'écran d'accueil
+REM Retour a l'ecran d'accueil
 echo Navigation vers RoadTripsScreen...
 adb shell input keyevent KEYCODE_BACK >nul 2>&1
 timeout /t 2 >nul
@@ -126,7 +126,7 @@ echo Phase %test_phase% terminee
 timeout /t 2 >nul
 goto :eof
 
-REM Analyse rapide des résultats
+REM Analyse rapide des resultats
 :quick_analysis
 echo Analyse de l'evolution de la consommation memoire:
 echo.

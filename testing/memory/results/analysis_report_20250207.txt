@@ -1,0 +1,15 @@
+================================================================== 
+                   RAPPORT D'ANALYSE MeMOIRE 
+                MonPetitRoadTrip - Navigation Test 
+================================================================== 
+ 
+Date de generation: 02/07/2025 19:09:19,08 
+Fichier de donnees: ..\results\comprehensive_navigation_test_20250207.csv 
+ 
+=== ReSUMe DES TESTS === 
+Tests EXCELLENT: 2 
+Tests BON: 0 
+Tests MODeRe: 0 
+Tests CRITIQUE: 0 
+Tests ALERTE: 1 
+ 

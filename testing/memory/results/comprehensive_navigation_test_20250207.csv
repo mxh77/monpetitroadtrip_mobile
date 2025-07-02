@@ -1,0 +1,4 @@
+Date,Time,TestStep,Description,PSS_Before_KB,PSS_After_KB,Diff_KB,Diff_MB,Status,Notes 
+02/07/2025,19:07:10,62,T1_RoadTrips_to_RoadTrip,"RoadTripsScreen vers RoadTripScreen",459172,420968,-38204,-37,EXCELLENT,"Consommation optimale" 
+02/07/2025,19:08:05,62,T2_RoadTrip_Tabs,"Navigation entre onglets RoadTripScreen",488992,414512,-74480,-72,EXCELLENT,"Consommation optimale" 
+02/07/2025,19:09:04,65,T3_RoadTrip_to_Step,"RoadTripScreen vers StepScreen",483056,563316,80260,78,ALERTE,"Fuite memoire majeure - Action immediate requise" 

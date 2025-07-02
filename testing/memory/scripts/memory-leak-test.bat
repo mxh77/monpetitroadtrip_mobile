@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 REM Script de test de fuites memoire pour Windows
 REM Ce script automatise les mesures de memoire avant/apres navigation
@@ -11,7 +11,7 @@ echo Application: %PACKAGE_NAME%
 echo Log file: %LOG_FILE%
 echo.
 
-REM Fonction pour mesurer la mémoire
+REM Fonction pour mesurer la memoire
 echo Verification de l'application...
 adb shell pidof %PACKAGE_NAME% >nul 2>&1
 if errorlevel 1 (
@@ -36,7 +36,7 @@ adb shell dumpsys meminfo %PACKAGE_NAME% | findstr "TOTAL RSS" >> %LOG_FILE%
 echo Timestamp: %date% %time% >> %LOG_FILE%
 echo. >> %LOG_FILE%
 
-REM Affichage des résultats AVANT - Version corrigée pour l'extraction
+REM Affichage des resultats AVANT - Version corrigee pour l'extraction
 echo Extraction des donnees PSS...
 for /f "tokens=2 delims= " %%i in ('adb shell dumpsys meminfo %PACKAGE_NAME% ^| findstr "TOTAL PSS:"') do (
     set BEFORE_PSS=%%i
@@ -62,7 +62,7 @@ adb shell dumpsys meminfo %PACKAGE_NAME% | findstr "TOTAL RSS" >> %LOG_FILE%
 echo Timestamp: %date% %time% >> %LOG_FILE%
 echo. >> %LOG_FILE%
 
-REM Affichage des résultats APRES - Version corrigée
+REM Affichage des resultats APRES - Version corrigee
 echo Extraction des donnees PSS...
 for /f "tokens=2 delims= " %%i in ('adb shell dumpsys meminfo %PACKAGE_NAME% ^| findstr "TOTAL PSS:"') do (
     set AFTER_PSS=%%i
@@ -74,7 +74,7 @@ set /a AFTER_MB=%AFTER_PSS% / 1024
 echo    Soit environ: %AFTER_MB% MB
 echo.
 
-REM Calcul de la différence - Version sécurisée
+REM Calcul de la difference - Version securisee
 echo Calcul de la difference...
 if "%BEFORE_PSS%"=="" set BEFORE_PSS=0
 if "%AFTER_PSS%"=="" set AFTER_PSS=0
@@ -88,7 +88,7 @@ echo    Apres: %AFTER_PSS% KB ^(%AFTER_MB% MB^)
 echo    Difference: %DIFF_PSS% KB ^(%DIFF_MB% MB^)
 echo.
 
-REM Alertes basées sur les seuils - Version ASCII
+REM Alertes basees sur les seuils - Version ASCII
 if %DIFF_PSS% gtr 102400 (
     echo ALERTE CRITIQUE: Fuite memoire majeure detectee ^(+100MB^)
 ) else if %DIFF_PSS% gtr 51200 (

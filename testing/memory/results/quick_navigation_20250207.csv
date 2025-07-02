@@ -1,0 +1,5 @@
+Date,Time,TestStep,Description,PSS_Before_KB,PSS_After_KB,Diff_KB,Diff_MB,Status,Notes 
+02/07/2025,19:11:54,78,QN1,"RoadTrips vers RoadTrip",697635,741451,43816,42,CRITIQUE,Test rapide 
+02/07/2025,19:12:18,73,QN2,"Navigation onglets",650307,656777,6470,6,BON,Test rapide 
+02/07/2025,19:12:45,66,QN3,"RoadTrip vers Step",768217,778042,9825,9,BON,Test rapide 
+02/07/2025,19:13:14,74,QN4,"Navigation Step",763784,760711,-3073,-3,BON,Test rapide 
