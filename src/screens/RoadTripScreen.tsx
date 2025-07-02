@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from 'react';
 import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -105,7 +105,8 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         signal // Ajouter le signal d'abort
       });
       const data = await response.json();
-      // console.log('Données de l\'API:', data);
+      console.log('🔍 Données brutes de l\'API - Nombre d\'étapes:', data.steps?.length || 0);
+      console.log('🔍 Données brutes de l\'API:', data);
 
       // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
       const { alerts, errorMessages } = checkDateConsistency(data);
@@ -147,6 +148,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       };
 
       setRoadtrip(filteredData);
+      console.log('🔍 Roadtrip récupéré - Nombre d\'étapes filtrées:', filteredData.steps?.length || 0);
       console.log('Roadtrip récupéré:', filteredData);
 
     } catch (error) {
@@ -483,35 +485,52 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return getActivityTypeColor(mainActivityType);
   }, [getStepMainActivityType]);
 
-  // Optimisation : mémoïsation du tri des steps
+  // Optimisation : mémoïsation du tri des steps avec pré-calculs
   const sortedSteps = useMemo(() => {
     if (!roadtrip?.steps) return [];
     
     return roadtrip.steps.sort((a, b) =>
       new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
-    ).map(step => ({
-      ...step,
-      accommodations: step.accommodations || [],
-      activities: step.activities || [],
-      // Pré-calcul des dates formatées pour éviter les calculs dans le rendu
-      formattedArrivalDate: new Date(step.arrivalDateTime).toLocaleString('fr-FR', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'UTC'
-      }),
-      formattedDepartureDate: new Date(step.departureDateTime).toLocaleString('fr-FR', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'UTC'
-      })
-    }));
-  }, [roadtrip?.steps]);
+    ).map(step => {
+      // Pré-calculs pour optimiser les performances de rendu
+      const mainActivityType = getStepMainActivityType(step);
+      const stepColor = getStepColor(step);
+      const stepIcon = getStepIcon(step);
+      const activeCounts = getStepActiveCounts(step);
+      const hasAlert = errors.some(error => error.stepId === step.id);
+      
+      return {
+        ...step,
+        accommodations: step.accommodations || [],
+        activities: step.activities || [],
+        // Pré-calcul des dates formatées pour éviter les calculs dans le rendu
+        formattedArrivalDate: new Date(step.arrivalDateTime).toLocaleString('fr-FR', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'UTC'
+        }),
+        formattedDepartureDate: new Date(step.departureDateTime).toLocaleString('fr-FR', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'UTC'
+        }),
+        // Pré-calculs pour les performances
+        precomputed: {
+          mainActivityType,
+          stepColor,
+          stepIcon,
+          activeCounts,
+          hasAlert
+        }
+      };
+    });
+  }, [roadtrip?.steps, errors, getStepMainActivityType, getStepColor, getStepIcon, getStepActiveCounts]);
 
   const getTravelInfoBackgroundColor = useCallback((note) => {
     switch (note) {
@@ -528,22 +547,22 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
   // Optimisation : getItemLayout pour de meilleures performances de scroll
   const getItemLayout = useCallback((data: any, index: number) => {
-    const ITEM_HEIGHT = 280; // Hauteur approximative de chaque carte + travel info
+    const STEP_CARD_HEIGHT = 200; // Hauteur de la carte step
+    const TRAVEL_INFO_HEIGHT = index > 0 ? 60 : 0; // Hauteur travel info (seulement après le premier élément)
     const ITEM_MARGIN = 16;   // Marge entre les éléments
+    const TOTAL_ITEM_HEIGHT = STEP_CARD_HEIGHT + TRAVEL_INFO_HEIGHT + ITEM_MARGIN;
+    
     return {
-      length: ITEM_HEIGHT + ITEM_MARGIN,
-      offset: (ITEM_HEIGHT + ITEM_MARGIN) * index,
+      length: TOTAL_ITEM_HEIGHT,
+      offset: TOTAL_ITEM_HEIGHT * index,
       index,
     };
   }, []);
 
-  // Optimisation : renderItem mémoïsé pour éviter les re-rendus inutiles
+  // Optimisation : renderItem simplifié utilisant les données pré-calculées
   const renderStepItem = useCallback(({ item, index }) => {
-    const mainActivityType = getStepMainActivityType(item);
-    const stepColor = getStepColor(item);
-    const stepIcon = getStepIcon(item);
-    const activeCounts = getStepActiveCounts(item);
-    const hasAlert = errors.some(error => error.stepId === item.id);
+    // Utilisation des données pré-calculées
+    const { mainActivityType, stepColor, stepIcon, activeCounts, hasAlert } = item.precomputed;
 
     return (
       <>
@@ -563,7 +582,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           </View>
         )}
         
-        <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+        {/* <Swipeable renderRightActions={() => renderRightActions(item.id)}> */}
           <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
             {/* Header avec couleur thématique */}
             <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
@@ -596,13 +615,14 @@ export default function RoadTripScreen({ route, navigation }: Props) {
               style={styles.stepCardContent}
               onPress={() => handleStepPress(item)}
             >
-              {/* Thumbnail optimisé */}
+              {/* Thumbnail optimisé avec lazy loading */}
               <Image
                 source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
                 style={styles.stepThumbnail}
                 resizeMode="cover"
                 defaultSource={require('../../assets/default-thumbnail.png')}
-                fadeDuration={200}
+                fadeDuration={150}
+                progressiveRenderingEnabled={true}
               />
 
               {/* Informations de dates - utilisation des dates pré-calculées */}
@@ -620,10 +640,10 @@ export default function RoadTripScreen({ route, navigation }: Props) {
               </View>
             </TouchableOpacity>
           </Card>
-        </Swipeable>
+        {/* </Swipeable> */}
       </>
     );
-  }, [errors, sortedSteps, getTravelInfoBackgroundColor, getStepMainActivityType, getStepColor, getStepIcon, getStepActiveCounts, renderRightActions]);
+  }, [sortedSteps, getTravelInfoBackgroundColor, getActivityTypeEmoji, renderRightActions, handleStepPress]);
 
   if (loading) {
     return (
@@ -641,6 +661,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   }
 
+  console.log('🔍 Sorted steps - Nombre d\'étapes triées:', sortedSteps.length);
   console.log('Sorted steps:', sortedSteps); // Ajoutez ce log pour vérifier les steps triés
 
   const StepList = () => (
@@ -653,13 +674,16 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={renderStepItem}
-        // Optimisations de performance FlatList
+        // Optimisations de performance FlatList équilibrées
         removeClippedSubviews={true}
-        initialNumToRender={4}
-        maxToRenderPerBatch={3}
-        updateCellsBatchingPeriod={100}
-        windowSize={5}
-        getItemLayout={getItemLayout}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
+        windowSize={10}
+        // getItemLayout temporairement désactivé - cause des saccades
+        // getItemLayout={getItemLayout}
+        scrollEventThrottle={16}
+        legacyImplementation={false}
       />
       <FAB
         style={styles.fab}
@@ -756,6 +780,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
 
         }}
       />
+     
     </Tab.Navigator>
   );
 }

@@ -1,5 +1,5 @@
 import config from '../config';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Text, View, ScrollView, TouchableOpacity, Image, StyleSheet, Modal } from 'react-native';
 import { Card, Button } from 'react-native-paper';
 import { formatDateJJMMAA } from '../utils/dateUtils';
