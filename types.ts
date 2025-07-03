@@ -87,6 +87,7 @@ export type RootStackParamList = {
   RoadTrips: { refresh?: () => void };
   RoadTrip: { roadtripId: string; returnToTab?: string; initialTab?: string };
   EditRoadTrip: { roadtripId?: string };
+  CreateRoadtripAI: { refresh?: () => void };
   CreateStep: { roadtripId: string; refresh: () => void };
   AddStepNaturalLanguage: { roadtripId: string; refresh: () => void };
   Step: {
@@ -196,6 +197,13 @@ export type EditActivityScreenRouteProp = RouteProp<RootStackParamList, 'EditAct
 export type EditActivityScreenProps = {
   navigation: EditActivityScreenNavigationProp;
   route: EditActivityScreenRouteProp;
+};
+
+export type CreateRoadtripAIScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateRoadtripAI'>;
+export type CreateRoadtripAIScreenRouteProp = RouteProp<RootStackParamList, 'CreateRoadtripAI'>;
+export type CreateRoadtripAIScreenProps = {
+  navigation: CreateRoadtripAIScreenNavigationProp;
+  route: CreateRoadtripAIScreenRouteProp;
 };
 
 

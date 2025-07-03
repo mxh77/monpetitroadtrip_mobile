@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, FlatList, Image, ActivityIndicator, Alert, Modal, Pressable, RefreshControl, TouchableOpacity } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
+import IconFA from 'react-native-vector-icons/FontAwesome5';
 import { RootStackParamList } from '../../types';
 import { FAB } from 'react-native-paper'; // Importer le b
 import Constants from 'expo-constants';
@@ -42,6 +43,7 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   const [refreshing, setRefreshing] = useState(false); // État pour gérer le rafraîchissement
   const [selectedRoadtrip, setSelectedRoadtrip] = useState<Roadtrip | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [choiceModalVisible, setChoiceModalVisible] = useState(false);
 
   const fetchRoadtrips = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -85,7 +87,7 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
   }, []);
 
   const handleAddRoadtrip = () => {
-    navigation.navigate('EditRoadTrip', {}); // Naviguez vers la page d'ajout/modification de roadtrip
+    setChoiceModalVisible(true);
   };
 
   const handleEditRoadtrip = () => {
@@ -212,14 +214,13 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
         icon="plus"
         onPress={handleAddRoadtrip}
       />
-
       <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity style={styles.modalButton} onPress={handleEditRoadtrip}>
               <Icon name="edit" size={24} color="#007BFF" />
@@ -231,6 +232,54 @@ export default function RoadTripsScreen({ navigation, route }: Props) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalButtonText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={choiceModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setChoiceModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Créer un roadtrip</Text>
+            <Text style={styles.modalSubtitle}>Choisissez votre méthode de création</Text>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setChoiceModalVisible(false);
+                navigation.navigate('EditRoadTrip', {});
+              }}
+            >
+              <Icon name="edit" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Création classique</Text>
+                <Text style={styles.modalButtonSubtext}>Formulaire détaillé</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setChoiceModalVisible(false);
+                navigation.navigate('CreateRoadtripAI', {});
+              }}
+            >
+              <IconFA name="magic" size={20} color="#007BFF" style={styles.modalButtonIcon} />
+              <View style={styles.modalButtonTextContainer}>
+                <Text style={styles.modalButtonText}>Création via IA</Text>
+                <Text style={styles.modalButtonSubtext}>Décrivez votre roadtrip en langage naturel</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setChoiceModalVisible(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -297,26 +346,74 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: '#007BFF',
   },
-  modalContainer: {
+  // Styles pour le modal ajout identiques à RoadTripScreen
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: 300,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    alignItems: 'center',
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 12,
+    padding: 24,
+    minWidth: 300,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#666',
   },
   modalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
+  },
+  modalButtonIcon: {
+    marginRight: 12,
+  },
+  modalButtonTextContainer: {
+    flex: 1,
   },
   modalButtonText: {
-    fontSize: 18,
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  modalButtonSubtext: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalCancelButton: {
+    marginTop: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#999',
   },
 });

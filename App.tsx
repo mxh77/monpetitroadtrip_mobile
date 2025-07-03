@@ -29,6 +29,7 @@ import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 import { NavigationProvider } from './src/utils/NavigationContext';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
+import CreateRoadtripAI from './src/screens/CreateRoadtripAI';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -102,6 +103,7 @@ export default function App() {
               />
               <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
               <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
+              <Stack.Screen name="CreateRoadtripAI" component={CreateRoadtripAI} options={{ title: "Créer un roadtrip via l'IA" }} />
             </Stack.Navigator>
             <CompressionProgressIndicator />
           </NavigationContainer>
