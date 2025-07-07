@@ -1,6 +1,6 @@
 import config from '../config';
 import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from 'react';
-import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal } from 'react-native';
+import { Button, StyleSheet, View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, Modal, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StackScreenProps } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -472,11 +472,40 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   };
 
   // Optimisation : memoization de renderRightActions pour éviter les re-créations
-  const renderRightActions = useCallback((stepId: string) => (
-    <TouchableOpacity style={styles.deleteButton} onPress={() => confirmDeleteStep(stepId)}>
-      <Icon name="trash" size={24} color="white" />
-    </TouchableOpacity>
-  ), []);
+  const renderRightActions = useCallback((progress, dragX, stepId: string) => {
+    // Calcul de l'animation pour un effet d'apparition progressive
+    const trans = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+    
+    // Utilisation de l'animation pour l'opacité et le déplacement
+    return (
+      <View style={styles.rightActionsContainer}>
+        <Animated.View 
+          style={[
+            styles.deleteActionContainer,
+            {
+              transform: [{ translateX: trans }],
+              opacity: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => confirmDeleteStep(stepId)}
+          >
+            <Icon name="trash-alt" size={22} color="white" />
+            <Text style={styles.deleteButtonText}>Supprimer</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
+  }, []);
 
   // Fonction pour gérer le rafraîchissement
   const onRefresh = async () => {
@@ -732,7 +761,12 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           </View>
         )}
         
-        {/* <Swipeable renderRightActions={() => renderRightActions(item.id)}> */}
+        <Swipeable 
+          renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
+        >
           <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
             {/* Header avec couleur thématique */}
             <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
@@ -814,7 +848,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
               </View>
             </TouchableOpacity>
           </Card>
-        {/* </Swipeable> */}
+        </Swipeable>
       </>
     );
   }, [sortedSteps, getTravelInfoBackgroundColor, getActivityTypeEmoji, renderRightActions, handleStepPress]);
@@ -1120,11 +1154,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#007BFF',
   },
   deleteButton: {
-    backgroundColor: 'red',
+    backgroundColor: '#e63946',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 60,
-    height: '80%',
+    width: 80,
+    height: '100%',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  rightActionsContainer: {
+    width: 80,
+    height: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+  },
+  deleteActionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
   travelInfoContainer: {
     alignItems: 'center',
