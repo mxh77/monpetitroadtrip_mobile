@@ -17,6 +17,7 @@ import { RefreshControl } from 'react-native-gesture-handler';
 import { useNavigationContext } from '../utils/NavigationContext';
 import { getActivityTypeIcon, getActivityTypeEmoji, getActivityTypeColor } from '../utils/activityIcons';
 import TasksScreen from './TasksScreen';
+import { useTabPersistence } from '../hooks/useTabPersistence';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -108,7 +109,12 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const [errors, setErrors] = useState<{ message: string, stepId: string, stepType: string }[]>([]);
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [dragSnapInterval, setDragSnapInterval] = useState(15); // Pas de déplacement en minutes (défaut: 15min)
-  const [currentTab, setCurrentTab] = useState(initialTab || 'Liste des étapes');
+  
+  // 📱 Hook de persistance des onglets
+  const { activeTab, changeTab, forceTab, isLoaded } = useTabPersistence(roadtripId, initialTab || 'Liste des étapes');
+  
+  // État pour forcer le remontage du navigator
+  const [navigatorKey, setNavigatorKey] = useState(0);
   
   // 🧪 États pour le monitoring mémoire
   const memoryStatsRef = useRef<MemoryStats | null>(null);
@@ -134,6 +140,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 RoadTripScreen focus, pendingPlanningNavigation:', pendingPlanningNavigation);
+      console.log('🔄 RoadTripScreen focus, activeTab actuel:', activeTab);
       
       // 🧪 Mesure mémoire au focus
       const focusMemory = getMemoryUsage('Focus sur RoadTripScreen');
@@ -144,19 +151,13 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       
       if (pendingPlanningNavigation) {
         console.log('🎯 Navigation automatique vers l\'onglet Planning');
-        // Utiliser setTimeout pour laisser le temps au composant de se rendre
-        setTimeout(() => {
-          if (navigation) {
-            // Reset vers RoadTrip avec onglet Planning
-            navigation.navigate('RoadTrip', { 
-              roadtripId, 
-              initialTab: 'Planning' 
-            });
-          }
-          clearPendingNavigation();
-        }, 100);
+        // Forcer l'onglet Planning via le hook de persistance
+        forceTab('Planning');
+        // Forcer le remontage du navigator pour prendre en compte le changement
+        setNavigatorKey(prev => prev + 1);
+        clearPendingNavigation();
       }
-    }, [pendingPlanningNavigation, roadtripId, navigation, clearPendingNavigation])
+    }, [pendingPlanningNavigation, roadtripId, navigation, clearPendingNavigation, activeTab, forceTab])
   );
 
   // Charger les paramètres utilisateur au démarrage
@@ -974,11 +975,26 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   };
 
+  // Attendre que la persistance soit chargée avant de rendre le Navigator
+  if (!isLoaded) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <Tab.Navigator
+      key={`${navigatorKey}-${activeTab}`}
       id={undefined}
-      initialRouteName={currentTab}
-      key={currentTab}
+      initialRouteName={activeTab}
+      screenListeners={({ navigation, route }) => ({
+        tabPress: (e) => {
+          // Sauvegarder l'onglet actuel
+          changeTab(route.name);
+        },
+      })}
     >
       <Tab.Screen
         name="Liste des étapes"
