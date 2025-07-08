@@ -218,6 +218,12 @@ export type RootStackParamList = {
     task?: RoadtripTask;
     refresh: () => void;
   };
+  TaskEdit: {
+    roadtripId: string;
+    taskId: string;
+    task: RoadtripTask;
+    refresh: () => void;
+  };
 };
 
 // Types pour les props de navigation et de route
@@ -272,6 +278,7 @@ export type CreateRoadtripAIScreenProps = {
 
 export type TasksScreenProps = StackScreenProps<RootStackParamList, 'Tasks'>;
 export type TaskDetailScreenProps = StackScreenProps<RootStackParamList, 'TaskDetail'>;
+export type TaskEditScreenProps = StackScreenProps<RootStackParamList, 'TaskEdit'>;
 
 
 

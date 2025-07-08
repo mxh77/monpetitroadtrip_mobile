@@ -12,10 +12,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { RefreshControl } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Animated from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { FAB, Card, Badge, Chip } from 'react-native-paper';
 import { TasksScreenProps, RoadtripTask, TaskStats, TaskCategory, TaskPriority, TaskStatus } from '../../types';
 import config from '../config';
+
+// Préchargement des icônes pour éviter les problèmes d'affichage
+Icon.loadFont();
 
 interface TasksScreenTabProps {
   roadtripId: string;
@@ -85,17 +90,34 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
         },
       });
       const data = await response.json();
+      console.log('📊 Données reçues du backend:', { 
+        tasksCount: data.tasks?.length || 0, 
+        stats: data.stats,
+        firstTask: data.tasks?.[0] 
+      });
       
       if (response.ok) {
         setTasks(data.tasks || []);
-        setStats(data.stats || {
-          total: 0,
-          pending: 0,
-          in_progress: 0,
-          completed: 0,
-          cancelled: 0,
-          completionPercentage: 0,
+        
+        // Calculer les stats avec une logique côté frontend pour s'assurer de la cohérence
+        const tasks = data.tasks || [];
+        const total = tasks.length;
+        const completed = tasks.filter((task: RoadtripTask) => task.status === 'completed').length;
+        const pending = tasks.filter((task: RoadtripTask) => task.status === 'pending').length;
+        const in_progress = tasks.filter((task: RoadtripTask) => task.status === 'in_progress').length;
+        const cancelled = tasks.filter((task: RoadtripTask) => task.status === 'cancelled').length;
+        const completionPercentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        setStats({
+          total,
+          pending,
+          in_progress,
+          completed,
+          cancelled,
+          completionPercentage,
         });
+        
+        console.log('📊 Stats calculées:', { total, completed, completionPercentage });
       } else {
         console.error('Erreur lors du chargement des tâches:', data.message);
       }
@@ -199,12 +221,91 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
   };
 
   const handleTaskPress = (task: RoadtripTask) => {
-    navigation.navigate('TaskDetail', {
+    // Navigation directe vers l'édition de la tâche au lieu du détail
+    handleEditTask(task);
+  };
+
+  const handleEditTask = (task: RoadtripTask) => {
+    navigation.navigate('TaskEdit', {
       roadtripId,
       taskId: task._id,
       task,
       refresh: fetchTasks,
     });
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    Alert.alert(
+      'Supprimer la tâche',
+      'Êtes-vous sûr de vouloir supprimer cette tâche ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { 
+          text: 'Supprimer', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              const token = await getJwtToken();
+              const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                fetchTasks();
+              } else {
+                const error = await response.json();
+                Alert.alert('Erreur', error.message || 'Erreur lors de la suppression de la tâche');
+              }
+            } catch (error) {
+              console.error('Erreur lors de la suppression de la tâche:', error);
+              Alert.alert('Erreur', 'Erreur lors de la suppression de la tâche');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  // Fonction pour rendre les actions de swipe à droite (édition) avec animation progressive
+  const renderRightActions = (task: RoadtripTask) => {
+    return (
+      <Animated.View style={styles.rightActionsContainer}>
+        <Animated.View style={styles.actionContent}>
+          <View style={styles.actionIconContainer}>
+            <Icon name="edit" size={20} color="white" />
+          </View>
+          <Text style={styles.actionButtonText}>Éditer</Text>
+        </Animated.View>
+        <TouchableOpacity
+          style={styles.actionTouchable}
+          onPress={() => handleEditTask(task)}
+          activeOpacity={1}
+        />
+      </Animated.View>
+    );
+  };
+
+  // Fonction pour rendre les actions de swipe à gauche (suppression) avec animation progressive
+  const renderLeftActions = (task: RoadtripTask) => {
+    return (
+      <Animated.View style={styles.leftActionsContainer}>
+        <Animated.View style={styles.actionContent}>
+          <View style={styles.actionIconContainer}>
+            <Icon name="trash-alt" size={20} color="white" />
+          </View>
+          <Text style={styles.actionButtonText}>Supprimer</Text>
+        </Animated.View>
+        <TouchableOpacity
+          style={styles.actionTouchable}
+          onPress={() => handleDeleteTask(task._id)}
+          activeOpacity={1}
+        />
+      </Animated.View>
+    );
   };
 
   const renderTaskItem = ({ item }: { item: RoadtripTask }) => {
@@ -214,66 +315,84 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
     const isOverdue = item.isOverdue && !isCompleted;
 
     return (
-      <Card style={[styles.taskCard, isCompleted && styles.completedTask]}>
-        <TouchableOpacity onPress={() => handleTaskPress(item)}>
-          <View style={styles.taskHeader}>
-            <View style={styles.taskHeaderLeft}>
-              <TouchableOpacity
-                style={[styles.checkbox, isCompleted && styles.checkedBox]}
-                onPress={() => toggleTaskCompletion(item._id)}
-              >
-                {isCompleted && <Icon name="check" size={12} color="white" />}
-              </TouchableOpacity>
-              <View style={styles.taskInfo}>
-                <Text style={[styles.taskTitle, isCompleted && styles.completedText]}>
-                  {item.title}
-                </Text>
-                {item.description && (
-                  <Text style={[styles.taskDescription, isCompleted && styles.completedText]} numberOfLines={2}>
-                    {item.description}
+      <Swipeable
+        renderRightActions={() => renderRightActions(item)}
+        renderLeftActions={() => renderLeftActions(item)}
+        rightThreshold={70}
+        leftThreshold={70}
+        friction={1}
+        overshootRight={false}
+        overshootLeft={false}
+        childrenContainerStyle={styles.swipeableContainer}
+        containerStyle={styles.swipeableOuterContainer}
+      >
+        <Card style={[styles.taskCard, isCompleted && styles.completedTask]}>
+          <TouchableOpacity onPress={() => handleTaskPress(item)}>
+            <View style={styles.taskHeader}>
+              <View style={styles.taskHeaderLeft}>
+                <TouchableOpacity
+                  style={[styles.checkbox, isCompleted && styles.checkedBox]}
+                  onPress={() => toggleTaskCompletion(item._id)}
+                >
+                  {isCompleted && <Icon name="check" size={12} color="white" />}
+                </TouchableOpacity>
+                <View style={styles.taskInfo}>
+                  <Text style={[styles.taskTitle, isCompleted && styles.completedText]}>
+                    {item.title}
                   </Text>
+                  {item.description && (
+                    <Text style={[styles.taskDescription, isCompleted && styles.completedText]} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={styles.taskHeaderRight}>
+                <Badge style={[styles.priorityBadge, { backgroundColor: priorityInfo.color }]} size={16}>
+                  {item.priority.charAt(0).toUpperCase()}
+                </Badge>
+              </View>
+            </View>
+            
+            <View style={styles.taskFooter}>
+              <Chip
+                icon={({size, color}) => (
+                  <Icon 
+                    name={categoryInfo.icon} 
+                    size={size || 16} 
+                    color={color || categoryInfo.color} 
+                  />
                 )}
-              </View>
+                style={[styles.categoryChip, { backgroundColor: categoryInfo.color + '20' }]}
+                textStyle={{ color: categoryInfo.color, fontSize: 12 }}
+              >
+                {categoryInfo.label}
+              </Chip>
+              
+              {item.dueDate && (
+                <View style={[styles.dueDateContainer, isOverdue && styles.overdueContainer]}>
+                  <Icon 
+                    name="clock" 
+                    size={12} 
+                    color={isOverdue ? '#dc3545' : '#6c757d'} 
+                    style={styles.dueDateIcon} 
+                  />
+                  <Text style={[styles.dueDateText, isOverdue && styles.overdueText]}>
+                    {new Date(item.dueDate).toLocaleDateString('fr-FR')}
+                  </Text>
+                </View>
+              )}
+              
+              {item.assignedTo && (
+                <View style={styles.assignedContainer}>
+                  <Icon name="user" size={12} color="#6c757d" style={styles.assignedIcon} />
+                  <Text style={styles.assignedText}>{item.assignedTo}</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.taskHeaderRight}>
-              <Badge style={[styles.priorityBadge, { backgroundColor: priorityInfo.color }]} size={16}>
-                {item.priority.charAt(0).toUpperCase()}
-              </Badge>
-            </View>
-          </View>
-          
-          <View style={styles.taskFooter}>
-            <Chip
-              icon={categoryInfo.icon}
-              style={[styles.categoryChip, { backgroundColor: categoryInfo.color + '20' }]}
-              textStyle={{ color: categoryInfo.color, fontSize: 12 }}
-            >
-              {categoryInfo.label}
-            </Chip>
-            
-            {item.dueDate && (
-              <View style={[styles.dueDateContainer, isOverdue && styles.overdueContainer]}>
-                <Icon 
-                  name="clock" 
-                  size={12} 
-                  color={isOverdue ? '#dc3545' : '#6c757d'} 
-                  style={styles.dueDateIcon} 
-                />
-                <Text style={[styles.dueDateText, isOverdue && styles.overdueText]}>
-                  {new Date(item.dueDate).toLocaleDateString('fr-FR')}
-                </Text>
-              </View>
-            )}
-            
-            {item.assignedTo && (
-              <View style={styles.assignedContainer}>
-                <Icon name="user" size={12} color="#6c757d" style={styles.assignedIcon} />
-                <Text style={styles.assignedText}>{item.assignedTo}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Card>
+          </TouchableOpacity>
+        </Card>
+      </Swipeable>
     );
   };
 
@@ -297,11 +416,11 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
         <View style={styles.progressContainer}>
           <Text style={styles.progressTitle}>Progression</Text>
           <Text style={styles.progressText}>
-            {stats.completed}/{stats.total} tâches terminées ({stats.completionPercentage}%)
+            {stats.completed || 0}/{stats.total || 0} tâches terminées ({Math.round(stats.completionPercentage || 0)}%)
           </Text>
           <View style={styles.progressBar}>
             <View 
-              style={[styles.progressFill, { width: `${stats.completionPercentage}%` }]} 
+              style={[styles.progressFill, { width: `${Math.min(Math.max(stats.completionPercentage || 0, 0), 100)}%` }]} 
             />
           </View>
         </View>
@@ -357,6 +476,15 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
             )}
           </View>
         }
+        ListHeaderComponent={
+          filteredTasks.length > 0 ? (
+            <View style={styles.swipeHintContainer}>
+              <Text style={styles.swipeHintText}>
+                💡 Glissez à droite pour éditer, à gauche pour supprimer
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
       {/* Bouton d'ajout */}
@@ -387,30 +515,31 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
             />
 
             <Text style={styles.labelText}>Catégorie</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScrollView}>
+            <View style={styles.categoryGrid}>
               {(Object.keys(categoryConfig) as TaskCategory[]).map((category) => (
                 <TouchableOpacity
                   key={category}
                   style={[
-                    styles.categoryOption,
-                    selectedCategory === category && styles.selectedCategoryOption
+                    styles.categoryGridOption,
+                    selectedCategory === category && styles.selectedCategoryGridOption
                   ]}
                   onPress={() => setSelectedCategory(category)}
                 >
                   <Icon 
                     name={categoryConfig[category].icon} 
-                    size={16} 
+                    size={20} 
                     color={selectedCategory === category ? 'white' : categoryConfig[category].color} 
+                    style={styles.categoryGridIcon}
                   />
                   <Text style={[
-                    styles.categoryOptionText,
-                    selectedCategory === category && styles.selectedCategoryOptionText
+                    styles.categoryGridText,
+                    selectedCategory === category && styles.selectedCategoryGridText
                   ]}>
                     {categoryConfig[category].label}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             <Text style={styles.labelText}>Priorité</Text>
             <View style={styles.priorityContainer}>
@@ -535,13 +664,15 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   taskCard: {
-    marginBottom: 12,
     borderRadius: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    backgroundColor: 'white',
+    overflow: 'hidden',
+    marginBottom: 0,
   },
   completedTask: {
     opacity: 0.7,
@@ -721,6 +852,42 @@ const styles = StyleSheet.create({
   categoryScrollView: {
     marginBottom: 16,
   },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+    justifyContent: 'space-between',
+  },
+  categoryGridOption: {
+    width: '32%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginBottom: 8,
+    backgroundColor: '#f8f9fa',
+    minHeight: 70,
+    justifyContent: 'center',
+  },
+  selectedCategoryGridOption: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  categoryGridIcon: {
+    marginBottom: 4,
+  },
+  categoryGridText: {
+    fontSize: 11,
+    color: '#6c757d',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  selectedCategoryGridText: {
+    color: 'white',
+  },
   categoryOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -792,6 +959,95 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  // Styles pour les actions de swipe
+  swipeableOuterContainer: {
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  swipeableContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  rightActionsContainer: {
+    width: 100,
+    backgroundColor: '#007bff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  leftActionsContainer: {
+    width: 100,
+    backgroundColor: '#dc3545',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  actionContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  actionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  actionTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  editButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 80,
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 80,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  swipeHintContainer: {
+    backgroundColor: '#f0f8ff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007bff',
+  },
+  swipeHintText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 

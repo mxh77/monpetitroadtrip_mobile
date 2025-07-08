@@ -27,6 +27,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Importer l'icône
 import SettingsScreen from './src/screens/SettingsScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import TaskDetailScreen from './src/screens/TaskDetailScreen';
+import TaskEditScreen from './src/screens/TaskEditScreen';
 import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 import { NavigationProvider } from './src/utils/NavigationContext';
@@ -106,6 +107,7 @@ export default function App() {
               <Stack.Screen name="Errors" component={ErrorsScreen} options={{ title: 'Erreurs détectées' }} />
               <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tâches' }} />
               <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Détail de la tâche' }} />
+              <Stack.Screen name="TaskEdit" component={TaskEditScreen} options={{ title: 'Éditer la tâche' }} />
               <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
               <Stack.Screen name="CreateRoadtripAI" component={CreateRoadtripAI} options={{ title: "Créer un roadtrip via l'IA" }} />
             </Stack.Navigator>
