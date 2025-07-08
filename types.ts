@@ -1,10 +1,64 @@
 import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { StackNavigationProp, StackScreenProps } from '@react-navigation/stack';
 
 // Types d'activités disponibles
 export type ActivityType = 'Randonnée' | 'Courses' | 'Visite' | 'Transport' | 'Restaurant' | 'Autre';
 
 export const ACTIVITY_TYPES: ActivityType[] = ['Randonnée', 'Courses', 'Visite', 'Transport', 'Restaurant', 'Autre'];
+
+// Types pour la gestion des tâches de roadtrip
+export type TaskCategory = 
+  | 'preparation' 
+  | 'booking' 
+  | 'packing' 
+  | 'documents' 
+  | 'transport' 
+  | 'accommodation' 
+  | 'activities' 
+  | 'health' 
+  | 'finances' 
+  | 'communication' 
+  | 'other';
+
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface RoadtripTask {
+  _id: string;
+  userId: string;
+  roadtripId: string;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate?: string;
+  completedAt?: string;
+  assignedTo?: string;
+  estimatedDuration?: number;
+  reminderDate?: string;
+  notes?: string;
+  order: number;
+  isOverdue: boolean;
+  timeRemaining?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskStats {
+  total: number;
+  pending: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+  completionPercentage: number;
+}
+
+export interface TasksResponse {
+  tasks: RoadtripTask[];
+  stats: TaskStats;
+}
 
 export interface Step {
   id: string;
@@ -154,6 +208,16 @@ export type RootStackParamList = {
   Maps: undefined;
   StepStory: { stepId: string };
   Settings: undefined;
+  Tasks: {
+    roadtripId: string;
+    refresh?: () => void;
+  };
+  TaskDetail: {
+    roadtripId: string;
+    taskId?: string;
+    task?: RoadtripTask;
+    refresh: () => void;
+  };
 };
 
 // Types pour les props de navigation et de route
@@ -205,6 +269,9 @@ export type CreateRoadtripAIScreenProps = {
   navigation: CreateRoadtripAIScreenNavigationProp;
   route: CreateRoadtripAIScreenRouteProp;
 };
+
+export type TasksScreenProps = StackScreenProps<RootStackParamList, 'Tasks'>;
+export type TaskDetailScreenProps = StackScreenProps<RootStackParamList, 'TaskDetail'>;
 
 
 

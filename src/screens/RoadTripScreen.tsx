@@ -16,6 +16,7 @@ import { getMinStartDateTime } from '../utils/dateUtils';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { useNavigationContext } from '../utils/NavigationContext';
 import { getActivityTypeIcon, getActivityTypeEmoji, getActivityTypeColor } from '../utils/activityIcons';
+import TasksScreen from './TasksScreen';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -964,6 +965,15 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     );
   };
 
+  const RoadTripTasks = () => {
+    return (
+      <TasksScreen 
+        roadtripId={roadtripId}
+        navigation={navigation}
+      />
+    );
+  };
+
   return (
     <Tab.Navigator
       id={undefined}
@@ -976,6 +986,16 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="list" color={color} size={size} />
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Tâches"
+        component={RoadTripTasks}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="tasks" color={color} size={size} />
           ),
           headerShown: false,
         }}
