@@ -19,9 +19,6 @@ import { FAB, Card, Badge, Chip } from 'react-native-paper';
 import { TasksScreenProps, RoadtripTask, TaskStats, TaskCategory, TaskPriority, TaskStatus } from '../../types';
 import config from '../config';
 
-// Préchargement des icônes pour éviter les problèmes d'affichage
-Icon.loadFont();
-
 interface TasksScreenTabProps {
   roadtripId: string;
   navigation: any;
@@ -51,15 +48,15 @@ const TasksScreen: React.FC<TasksScreenProps | TasksScreenTabProps> = (props) =>
 
   // Catégories avec leurs icônes et couleurs
   const categoryConfig = {
-    preparation: { icon: 'clipboard-list', color: '#6c757d', label: 'Préparation' },
+    preparation: { icon: 'clipboard-check', color: '#6c757d', label: 'Préparation' },
     booking: { icon: 'calendar-check', color: '#007bff', label: 'Réservations' },
     packing: { icon: 'suitcase', color: '#28a745', label: 'Bagages' },
-    documents: { icon: 'id-card', color: '#ffc107', label: 'Documents' },
+    documents: { icon: 'file-alt', color: '#ffc107', label: 'Documents' },
     transport: { icon: 'car', color: '#fd7e14', label: 'Transport' },
     accommodation: { icon: 'bed', color: '#20c997', label: 'Hébergement' },
-    activities: { icon: 'map-marked-alt', color: '#e83e8c', label: 'Activités' },
+    activities: { icon: 'map-marker-alt', color: '#e83e8c', label: 'Activités' },
     health: { icon: 'heartbeat', color: '#dc3545', label: 'Santé' },
-    finances: { icon: 'euro-sign', color: '#17a2b8', label: 'Finances' },
+    finances: { icon: 'dollar-sign', color: '#17a2b8', label: 'Finances' },
     communication: { icon: 'phone', color: '#6610f2', label: 'Communication' },
     other: { icon: 'ellipsis-h', color: '#6c757d', label: 'Autre' },
   };
