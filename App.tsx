@@ -28,10 +28,12 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import TaskDetailScreen from './src/screens/TaskDetailScreen';
 import TaskEditScreen from './src/screens/TaskEditScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 import { NavigationProvider } from './src/utils/NavigationContext';
 import { ChatProvider } from './src/context/ChatContext';
+import { NotificationProvider } from './src/context/NotificationContext';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import CreateRoadtripAI from './src/screens/CreateRoadtripAI';
 
@@ -50,9 +52,14 @@ export default function App() {
   console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
     <PaperProvider theme={theme}>
-      <ChatProvider>
-        <NavigationProvider>
-          <CompressionProvider>
+      <NotificationProvider
+        pollingFrequency={3000}
+        enablePushNotifications={false}
+        useMockAPI={false}
+      >
+        <ChatProvider>
+          <NavigationProvider>
+            <CompressionProvider>
             <NavigationContainer>
               <Stack.Navigator initialRouteName="Home" id={undefined}>
               <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
@@ -110,6 +117,7 @@ export default function App() {
               <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Tâches' }} />
               <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Détail de la tâche' }} />
               <Stack.Screen name="TaskEdit" component={TaskEditScreen} options={{ title: 'Éditer la tâche' }} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
               <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
               <Stack.Screen name="CreateRoadtripAI" component={CreateRoadtripAI} options={{ title: "Créer un roadtrip via l'IA" }} />
             </Stack.Navigator>
@@ -118,6 +126,7 @@ export default function App() {
         </CompressionProvider>
       </NavigationProvider>
       </ChatProvider>
+      </NotificationProvider>
     </PaperProvider>
   );
 }

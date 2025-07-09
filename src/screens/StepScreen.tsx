@@ -28,6 +28,8 @@ import { TriangleCornerTopRight } from '../components/shapes';
 import { getActivityTypeIcon, getActivityTypeColor } from '../utils/activityIcons';
 import ChatLayout from '../components/ChatLayout';
 import { useChatBot } from '../hooks/useChatBot';
+import NotificationButton from '../components/NotificationButton';
+import { useNotifications } from '../hooks/useNotifications';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,6 +49,9 @@ export default function StepScreen({ route, navigation }: Props) {
     
     // 🤖 Hook pour le chatbot
     const { isChatAvailable } = useChatBot(roadtripId);
+    
+    // 🔔 Hook pour les notifications
+    const { getUnreadCount, boostPolling, unreadCount } = useNotifications(roadtripId);
     
     const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
@@ -584,6 +589,17 @@ export default function StepScreen({ route, navigation }: Props) {
             title: step?.name || 'Étape',
             headerRight: () => (
                 <View style={styles.headerButtons}>
+                    <NotificationButton 
+                        roadtripId={roadtripId}
+                        unreadCount={unreadCount}
+                        onPress={(roadtripId) => {
+                            navigation.navigate('Notifications', { roadtripId });
+                            boostPolling(roadtripId, 30000);
+                        }}
+                        style={{ marginRight: 10 }}
+                        iconSize={18}
+                        iconColor="white"
+                    />
                     <TouchableOpacity onPress={fetchStep} style={styles.headerButton}>
                         <Fontawesome5 name="sync" size={18} color="white" />
                     </TouchableOpacity>
@@ -596,7 +612,7 @@ export default function StepScreen({ route, navigation }: Props) {
                 </View>
             ),
         });
-    }, [navigation, step]);
+    }, [navigation, step, roadtripId, unreadCount, boostPolling]);
 
     // Rendu du skeleton loading
     const SkeletonLoader = () => (

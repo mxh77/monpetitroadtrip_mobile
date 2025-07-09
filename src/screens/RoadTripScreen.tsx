@@ -20,6 +20,8 @@ import TasksScreen from './TasksScreen';
 import { useTabPersistence } from '../hooks/useTabPersistence';
 import ChatLayout from '../components/ChatLayout';
 import { useChatBot } from '../hooks/useChatBot';
+import NotificationButton from '../components/NotificationButton';
+import { useNotifications } from '../hooks/useNotifications';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -117,6 +119,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   
   // 🤖 Hook pour le chatbot
   const { isChatAvailable } = useChatBot(roadtripId);
+  
+  // 🔔 Hook pour les notifications
+  const { getUnreadCount, boostPolling, unreadCount } = useNotifications(roadtripId);
   
   // État pour forcer le remontage du navigator
   const [navigatorKey, setNavigatorKey] = useState(0);
@@ -392,9 +397,21 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   // Afficher une icône de notification et paramètres en haut à droite
   useEffect(() => {
     console.log('Mise à jour de la barre de navigation');
+    
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+          {/* Bouton de notifications */}
+          <NotificationButton 
+            roadtripId={roadtripId}
+            unreadCount={unreadCount}
+            onPress={(roadtripId) => {
+              navigation.navigate('Notifications', { roadtripId });
+              boostPolling(roadtripId, 30000);
+            }}
+            style={{ marginRight: 10 }}
+          />
+          
           {/* Alertes existantes */}
           {alertCount > 0 && (
             <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
@@ -407,7 +424,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         </View>
       ),
     });
-  }, [navigation, alertCount, errors]);
+  }, [navigation, alertCount, errors, roadtripId, unreadCount, boostPolling]);
 
   // Fonction pour gérer la navigation vers la page de détails du step
   const handleStepPress = (step: any) => {

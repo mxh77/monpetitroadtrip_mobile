@@ -224,6 +224,9 @@ export type RootStackParamList = {
     task: RoadtripTask;
     refresh: () => void;
   };
+  Notifications: {
+    roadtripId: string;
+  };
 };
 
 // Types pour les props de navigation et de route
