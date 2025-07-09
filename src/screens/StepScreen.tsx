@@ -26,6 +26,8 @@ import Accommodations from '../components/Accommodations';
 import Activities from '../components/Activities';
 import { TriangleCornerTopRight } from '../components/shapes';
 import { getActivityTypeIcon, getActivityTypeColor } from '../utils/activityIcons';
+import ChatLayout from '../components/ChatLayout';
+import { useChatBot } from '../hooks/useChatBot';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,6 +44,10 @@ export default function StepScreen({ route, navigation }: Props) {
     const [step, setStep] = useState<Step | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    
+    // 🤖 Hook pour le chatbot
+    const { isChatAvailable } = useChatBot(roadtripId);
+    
     const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
         _id: string; address: string; latitude: number; longitude: number; name: string; arrivalDateTime: string; active?: boolean
@@ -622,8 +628,9 @@ export default function StepScreen({ route, navigation }: Props) {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar backgroundColor="#007BFF" barStyle="light-content" />
+        <ChatLayout showChatButton={isChatAvailable}>
+            <SafeAreaView style={styles.container}>
+                <StatusBar backgroundColor="#007BFF" barStyle="light-content" />
             
             {/* Carte avec contrôles */}
             <View style={styles.mapContainer}>
@@ -696,6 +703,7 @@ export default function StepScreen({ route, navigation }: Props) {
                 />
             </View>
         </SafeAreaView>
+        </ChatLayout>
     );
 }
 

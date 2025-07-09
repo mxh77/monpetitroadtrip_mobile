@@ -31,6 +31,7 @@ import TaskEditScreen from './src/screens/TaskEditScreen';
 import { CompressionProvider } from './src/utils/CompressionContext';
 import CompressionProgressIndicator from './src/components/CompressionProgressIndicator';
 import { NavigationProvider } from './src/utils/NavigationContext';
+import { ChatProvider } from './src/context/ChatContext';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import CreateRoadtripAI from './src/screens/CreateRoadtripAI';
 
@@ -49,10 +50,11 @@ export default function App() {
   console.log('Backend URL:', config.BACKEND_URL); // Vérifiez si l'URL est correcte
   return (
     <PaperProvider theme={theme}>
-      <NavigationProvider>
-        <CompressionProvider>
-          <NavigationContainer>
-            <Stack.Navigator initialRouteName="Home" id={undefined}>
+      <ChatProvider>
+        <NavigationProvider>
+          <CompressionProvider>
+            <NavigationContainer>
+              <Stack.Navigator initialRouteName="Home" id={undefined}>
               <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
               <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Se connecter' }} />
               <Stack.Screen
@@ -115,6 +117,7 @@ export default function App() {
           </NavigationContainer>
         </CompressionProvider>
       </NavigationProvider>
+      </ChatProvider>
     </PaperProvider>
   );
 }

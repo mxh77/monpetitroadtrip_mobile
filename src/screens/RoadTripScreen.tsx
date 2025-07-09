@@ -18,6 +18,8 @@ import { useNavigationContext } from '../utils/NavigationContext';
 import { getActivityTypeIcon, getActivityTypeEmoji, getActivityTypeColor } from '../utils/activityIcons';
 import TasksScreen from './TasksScreen';
 import { useTabPersistence } from '../hooks/useTabPersistence';
+import ChatLayout from '../components/ChatLayout';
+import { useChatBot } from '../hooks/useChatBot';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -112,6 +114,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   
   // 📱 Hook de persistance des onglets
   const { activeTab, changeTab, forceTab, isLoaded } = useTabPersistence(roadtripId, initialTab || 'Liste des étapes');
+  
+  // 🤖 Hook pour le chatbot
+  const { isChatAvailable } = useChatBot(roadtripId);
   
   // État pour forcer le remontage du navigator
   const [navigatorKey, setNavigatorKey] = useState(0);
@@ -985,17 +990,18 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   }
 
   return (
-    <Tab.Navigator
-      key={`${navigatorKey}-${activeTab}`}
-      id={undefined}
-      initialRouteName={activeTab}
-      screenListeners={({ navigation, route }) => ({
-        tabPress: (e) => {
-          // Sauvegarder l'onglet actuel
-          changeTab(route.name);
-        },
-      })}
-    >
+    <ChatLayout showChatButton={isChatAvailable}>
+      <Tab.Navigator
+        key={`${navigatorKey}-${activeTab}`}
+        id={undefined}
+        initialRouteName={activeTab}
+        screenListeners={({ navigation, route }) => ({
+          tabPress: (e) => {
+            // Sauvegarder l'onglet actuel
+            changeTab(route.name);
+          },
+        })}
+      >
       <Tab.Screen
         name="Liste des étapes"
         component={StepList}
@@ -1029,6 +1035,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       />
      
     </Tab.Navigator>
+    </ChatLayout>
   );
 }
 
