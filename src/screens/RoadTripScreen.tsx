@@ -22,6 +22,8 @@ import ChatLayout from '../components/ChatLayout';
 import { useChatBot } from '../hooks/useChatBot';
 import NotificationButton from '../components/NotificationButton';
 import { useNotifications } from '../hooks/useNotifications';
+import { PERFORMANCE_CONFIG, trackPerformance, throttle, debounce } from '../config/performance';
+import StepItem from '../components/StepItem';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -120,8 +122,10 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   // 🤖 Hook pour le chatbot
   const { isChatAvailable } = useChatBot(roadtripId);
   
-  // 🔔 Hook pour les notifications
-  const { getUnreadCount, boostPolling, unreadCount } = useNotifications(roadtripId);
+  // 🔔 Hook pour les notifications - OPTIMISÉ pour éviter les dropped frames
+  // Ne polling que quand l'écran est actif/focusé
+  const [isScreenFocused, setIsScreenFocused] = useState(false);
+  const { unreadCount, boostPolling } = useNotifications(isScreenFocused ? roadtripId : null);
   
   // État pour forcer le remontage du navigator
   const [navigatorKey, setNavigatorKey] = useState(0);
@@ -152,6 +156,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
       console.log('🔄 RoadTripScreen focus, pendingPlanningNavigation:', pendingPlanningNavigation);
       console.log('🔄 RoadTripScreen focus, activeTab actuel:', activeTab);
       
+      // ✅ Activer les notifications quand l'écran est focusé
+      setIsScreenFocused(true);
+      
       // 🧪 Mesure mémoire au focus
       const focusMemory = getMemoryUsage('Focus sur RoadTripScreen');
       if (memoryStatsRef.current) {
@@ -167,6 +174,12 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         setNavigatorKey(prev => prev + 1);
         clearPendingNavigation();
       }
+      
+      // ❌ Désactiver les notifications quand l'écran perd le focus
+      return () => {
+        console.log('🔄 RoadTripScreen blur - désactivation des notifications');
+        setIsScreenFocused(false);
+      };
     }, [pendingPlanningNavigation, roadtripId, navigation, clearPendingNavigation, activeTab, forceTab])
   );
 
@@ -188,7 +201,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     memoryStatsRef.current = getMemoryUsage('Montage du composant');
     console.log('🧪 Mémoire au montage:', memoryStatsRef.current);
     
-    // Forcer le garbage collector périodiquement (si disponible)
+    // Forcer le garbage collector périodiquement (si disponible) - MOINS FRÉQUENT
     const memoryCleanupInterval = setInterval(() => {
       if (global.gc) {
         console.log('🧹 Nettoyage mémoire forcé');
@@ -200,7 +213,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           logMemoryComparison(memoryStatsRef.current, currentMemory);
         }
       }
-    }, 15000); // Réduire de 30s à 15s pour nettoyage plus fréquent
+    }, PERFORMANCE_CONFIG.MEMORY_CLEANUP_INTERVAL); // Utiliser la config
     
     return () => {
       console.log('🔄 RoadTripScreen - Composant démonté - Nettoyage complet');
@@ -683,52 +696,33 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return getActivityTypeColor(mainActivityType);
   }, [getStepMainActivityType]);
 
-  // Optimisation : mémoïsation du tri des steps avec pré-calculs
+  // Optimisation : mémoïsation du tri des steps avec pré-calculs OPTIMISÉE
   const sortedSteps = useMemo(() => {
-    if (!roadtrip?.steps) return [];
-    
-    return roadtrip.steps.sort((a, b) =>
-      new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
-    ).map(step => {
-      // Pré-calculs pour optimiser les performances de rendu
-      const mainActivityType = getStepMainActivityType(step);
-      const stepColor = getStepColor(step);
-      const stepIcon = getStepIcon(step);
-      const activeCounts = getStepActiveCounts(step);
-      const hasAlert = errors.some(error => error.stepId === step.id);
+    return trackPerformance('sortedSteps calculation', () => {
+      if (!roadtrip?.steps) return [];
       
-      return {
+      // Séparer le tri des pré-calculs coûteux
+      const sorted = roadtrip.steps.slice().sort((a, b) =>
+        new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
+      );
+      
+      // Seulement les pré-calculs essentiels pour éviter les re-renders
+      return sorted.map(step => ({
         ...step,
         accommodations: step.accommodations || [],
         activities: step.activities || [],
-        // Pré-calcul des dates formatées pour éviter les calculs dans le rendu
-        formattedArrivalDate: new Date(step.arrivalDateTime).toLocaleString('fr-FR', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'UTC'
-        }),
-        formattedDepartureDate: new Date(step.departureDateTime).toLocaleString('fr-FR', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'UTC'
-        }),
-        // Pré-calculs pour les performances
+        // Pré-calculs LÉGERS uniquement
         precomputed: {
-          mainActivityType,
-          stepColor,
-          stepIcon,
-          activeCounts,
-          hasAlert
+          mainActivityType: getStepMainActivityType(step),
+          stepColor: getStepColor(step),
+          stepIcon: getStepIcon(step),
+          activeCounts: getStepActiveCounts(step),
+          hasAlert: errors.some(error => error.stepId === step.id),
+          // Supprimer les formatages coûteux - les faire à la volée
         }
-      };
+      }));
     });
-  }, [roadtrip?.steps, errors, getStepMainActivityType, getStepColor, getStepIcon, getStepActiveCounts]);
+  }, [roadtrip?.steps, errors.length]); // Utiliser errors.length au lieu de errors pour éviter les re-renders
 
   // 🔍 Monitoring des re-renders après la déclaration de sortedSteps
   useEffect(() => {
@@ -762,120 +756,21 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     };
   }, []);
 
-  // Optimisation : renderItem simplifié utilisant les données pré-calculées
+  // Optimisation : renderItem simplifié utilisant le composant optimisé
   const renderStepItem = useCallback(({ item, index }) => {
-    // Utilisation des données pré-calculées
-    const { mainActivityType, stepColor, stepIcon, activeCounts, hasAlert } = item.precomputed;
-
     return (
-      <>
-        {index > 0 && (
-          <View style={styles.travelInfoContainer}>
-            <View style={styles.travelInfoLine} />
-            <Image source={rvIcon} style={styles.travelIcon} />
-            <View style={[styles.travelInfo, { backgroundColor: getTravelInfoBackgroundColor(sortedSteps[index].travelTimeNote) }]}>
-              <Text style={styles.travelText}>
-                Temps de trajet : {Math.floor(sortedSteps[index].travelTimePreviousStep / 60)}h {sortedSteps[index].travelTimePreviousStep % 60}m
-              </Text>
-              <Text style={styles.travelText}>
-                Distance : {sortedSteps[index].distancePreviousStep}km
-              </Text>
-            </View>
-            <View style={styles.travelInfoLine} />
-          </View>
-        )}
-        
-        <Swipeable 
-          renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}
-          rightThreshold={40}
-          friction={2}
-          overshootRight={false}
-        >
-          <Card style={[styles.stepCard, hasAlert && styles.stepCardAlert]}>
-            {/* Header avec couleur thématique */}
-            <View style={[styles.stepCardHeader, { backgroundColor: stepColor }]}>
-              <View style={styles.stepHeaderLeft}>
-                <View style={styles.stepIconContainer}>
-                  <Icon name={stepIcon} size={20} color="white" />
-                </View>
-                <View style={styles.stepHeaderInfo}>
-                  <Text style={styles.stepTitle} numberOfLines={1}>
-                    {getActivityTypeEmoji(mainActivityType)} {item.name}
-                  </Text>
-                  <Text style={styles.stepType}>{item.type}</Text>
-                </View>
-              </View>
-              <View style={styles.stepHeaderRight}>
-                {hasAlert && (
-                  <Badge style={styles.alertBadge} size={18}>!</Badge>
-                )}
-                {activeCounts.accommodations > 0 && (
-                  <Badge style={styles.accommodationBadge} size={16}>{activeCounts.accommodations}</Badge>
-                )}
-                {activeCounts.activities > 0 && (
-                  <Badge style={styles.activityBadge} size={16}>{activeCounts.activities}</Badge>
-                )}
-              </View>
-            </View>
-
-            {/* Contenu principal */}
-            <TouchableOpacity
-              style={styles.stepCardContent}
-              onPress={() => handleStepPress(item)}
-            >
-              {/* Thumbnail optimisé avec gestion mémoire stricte */}
-              <Image
-                source={item.thumbnail?.url ? { uri: item.thumbnail.url } : require('../../assets/default-thumbnail.png')}
-                style={styles.stepThumbnail}
-                resizeMode="cover"
-                defaultSource={require('../../assets/default-thumbnail.png')}
-                fadeDuration={150}
-                progressiveRenderingEnabled={false}
-                // Optimisations anti-fuite mémoire
-                onLoad={() => {
-                  console.log('🖼️ Image chargée:', item.name);
-                  // 🧪 Tracking des images chargées
-                  if (item.thumbnail?.url) {
-                    loadedImagesRef.current.add(item.thumbnail.url);
-                    console.log(`🧪 Total images en mémoire: ${loadedImagesRef.current.size}`);
-                  }
-                }}
-                onError={(error) => {
-                  console.warn('❌ Erreur image:', error.nativeEvent.error);
-                  // Retirer de la liste si erreur
-                  if (item.thumbnail?.url) {
-                    loadedImagesRef.current.delete(item.thumbnail.url);
-                  }
-                }}
-                // Forcer la libération mémoire
-                onLoadEnd={() => {
-                  // Image chargée, peut libérer les ressources temporaires
-                  if (global.gc && loadedImagesRef.current.size > 5) { // Réduire de 10 à 5
-                    console.log('🧹 Trop d\'images en mémoire, nettoyage forcé');
-                    global.gc();
-                  }
-                }}
-              />
-
-              {/* Informations de dates - utilisation des dates pré-calculées */}
-              <View style={styles.stepDatesContainer}>
-                <View style={styles.stepDateRow}>
-                  <Icon name="arrow-right" size={14} color="#28a745" style={styles.stepDateIcon} />
-                  <Text style={styles.stepDateLabel}>Arrivée:</Text>
-                  <Text style={styles.stepDateTime}>{item.formattedArrivalDate}</Text>
-                </View>
-                <View style={styles.stepDateRow}>
-                  <Icon name="arrow-right" size={14} color="#dc3545" style={styles.stepDateIcon} />
-                  <Text style={styles.stepDateLabel}>Départ:</Text>
-                  <Text style={styles.stepDateTime}>{item.formattedDepartureDate}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </Card>
-        </Swipeable>
-      </>
+      <StepItem
+        item={item}
+        index={index}
+        sortedSteps={sortedSteps}
+        styles={styles}
+        getTravelInfoBackgroundColor={getTravelInfoBackgroundColor}
+        renderRightActions={renderRightActions}
+        handleStepPress={handleStepPress}
+        loadedImagesRef={loadedImagesRef}
+      />
     );
-  }, [sortedSteps, getTravelInfoBackgroundColor, getActivityTypeEmoji, renderRightActions, handleStepPress]);
+  }, [sortedSteps, getTravelInfoBackgroundColor, renderRightActions, handleStepPress]);
 
   if (loading) {
     return (
@@ -906,19 +801,30 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={renderStepItem}
-        // Optimisations de performance FlatList - Mode économie mémoire AGGRESSIVE
+        // Optimisations de performance FlatList - Mode anti-dropped frames EXTREME
         removeClippedSubviews={true}
-        initialNumToRender={2}                    // Réduire de 3 à 2
-        maxToRenderPerBatch={2}                   // Réduire de 3 à 2
-        updateCellsBatchingPeriod={150}           // Augmenter de 100 à 150
-        windowSize={3}                            // Réduire de 5 à 3
-        // getItemLayout temporairement désactivé - cause des saccades
-        // getItemLayout={getItemLayout}
-        scrollEventThrottle={32}                  // Augmenter de 16 à 32
+        initialNumToRender={2}                    // Minimum absolu
+        maxToRenderPerBatch={1}                   // Rendu 1 par 1 pour éviter les freeze
+        updateCellsBatchingPeriod={250}           // Encore plus lent mais plus fluide
+        windowSize={3}                            // Minimum pour éviter les blancs
+        scrollEventThrottle={64}                  // Moins d'events scroll
         legacyImplementation={false}
         // Anti-fuite mémoire RENFORCÉE
-        onEndReachedThreshold={0.3}               // Réduire de 0.5 à 0.3
+        onEndReachedThreshold={0.1}               // Très bas pour éviter les pre-loads
         disableVirtualization={false}
+        // Optimisation images
+        progressViewOffset={-40}
+        // Réduire les animations
+        showsVerticalScrollIndicator={false}
+        bounces={false}                           // Réduire les animations
+        overScrollMode="never"                    // Android uniquement
+        // Callback de performance
+        onScrollBeginDrag={() => {
+          // Préparation au scroll - nettoyer la mémoire si nécessaire
+          if (global.gc && loadedImagesRef.current.size > 10) {
+            global.gc();
+          }
+        }}
       />
       <FAB
         style={styles.fab}

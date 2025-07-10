@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StackScreenProps } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList, Step } from '../../types';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import Geocoder from 'react-native-geocoding';
@@ -50,8 +51,10 @@ export default function StepScreen({ route, navigation }: Props) {
     // 🤖 Hook pour le chatbot
     const { isChatAvailable } = useChatBot(roadtripId);
     
-    // 🔔 Hook pour les notifications
-    const { getUnreadCount, boostPolling, unreadCount } = useNotifications(roadtripId);
+    // 🔔 Hook pour les notifications - OPTIMISÉ pour éviter les dropped frames  
+    // Ne polling que quand l'écran est actif/focusé
+    const [isScreenFocused, setIsScreenFocused] = useState(false);
+    const { unreadCount, boostPolling } = useNotifications(isScreenFocused ? roadtripId : null);
     
     const [coordinatesStep, setCoordinatesStep] = useState<{ latitude: number; longitude: number } | null>(null);
     const [coordinatesAccommodations, setCoordinatesAccommodations] = useState<Array<{
@@ -613,6 +616,19 @@ export default function StepScreen({ route, navigation }: Props) {
             ),
         });
     }, [navigation, step, roadtripId, unreadCount, boostPolling]);
+
+    // 🔄 Gestion du focus pour optimiser les notifications
+    useFocusEffect(
+        useCallback(() => {
+            console.log('🔄 StepScreen focus - activation des notifications');
+            setIsScreenFocused(true);
+            
+            return () => {
+                console.log('🔄 StepScreen blur - désactivation des notifications');
+                setIsScreenFocused(false);
+            };
+        }, [])
+    );
 
     // Rendu du skeleton loading
     const SkeletonLoader = () => (

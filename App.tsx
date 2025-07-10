@@ -53,7 +53,7 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <NotificationProvider
-        pollingFrequency={3000}
+        pollingFrequency={10000}
         enablePushNotifications={false}
         useMockAPI={false}
       >
