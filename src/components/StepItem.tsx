@@ -253,6 +253,13 @@ const StepItem = memo(({
       </Swipeable>
     </View>
   );
+}, (prevProps, nextProps) => {
+  // Comparaison SIMPLE pour éviter les saccades
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.name === nextProps.item.name &&
+    prevProps.index === nextProps.index
+  );
 });
 
 StepItem.displayName = 'StepItem';

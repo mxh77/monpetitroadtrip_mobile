@@ -24,6 +24,7 @@ import NotificationButton from '../components/NotificationButton';
 import { useNotifications } from '../hooks/useNotifications';
 import { PERFORMANCE_CONFIG, trackPerformance, throttle, debounce } from '../config/performance';
 import StepItem from '../components/StepItem';
+import ChatBot from '../components/ChatBot';
 
 // 🧪 Utilitaires de test mémoire
 interface MemoryStats {
@@ -113,7 +114,9 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false); // État pour le rafraîchissement
   const [alertCount, setAlertCount] = useState(0);
   const [errors, setErrors] = useState<{ message: string, stepId: string, stepType: string }[]>([]);
+  // État pour le modal d'ajout d'étape ET le chatbot
   const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
   const [dragSnapInterval, setDragSnapInterval] = useState(15); // Pas de déplacement en minutes (défaut: 15min)
   
   // 📱 Hook de persistance des onglets
@@ -133,6 +136,16 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   // 🧪 États pour le monitoring mémoire
   const memoryStatsRef = useRef<MemoryStats | null>(null);
   const loadedImagesRef = useRef<Set<string>>(new Set()); // Tracking des images chargées
+  
+  // 📜 Référence pour préserver la position du scroll
+  const flatListRef = useRef<any>(null);
+  const scrollPositionRef = useRef(0);
+  
+  // 🔒 Références SIMPLIFIÉES pour éviter les re-renders pendant le polling
+  const roadtripDataRef = useRef<Roadtrip | null>(null);
+  const lastPollingHashRef = useRef<string>('');
+  const isScrollingRef = useRef(false);
+  const pendingUpdateRef = useRef<Roadtrip | null>(null);
   
   // Contexte de navigation pour gérer le retour automatique au Planning (optionnel)
   let pendingPlanningNavigation = false;
@@ -309,8 +322,24 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         })),
       };
 
-      setRoadtrip(filteredData);
-      console.log('🔍 Roadtrip récupéré - Nombre d\'étapes filtrées:', filteredData.steps?.length || 0);
+      // Vérifier si les données ont réellement changé pour éviter les re-renders inutiles
+      const currentDataHash = JSON.stringify({
+        steps: filteredData.steps.map(s => ({ id: s.id, name: s.name, arrivalDateTime: s.arrivalDateTime })),
+        name: filteredData.name
+      });
+      
+      const previousDataHash = roadtrip ? JSON.stringify({
+        steps: roadtrip.steps.map(s => ({ id: s.id, name: s.name, arrivalDateTime: s.arrivalDateTime })),
+        name: roadtrip.name
+      }) : '';
+
+      // Ne mettre à jour que si les données ont changé
+      if (currentDataHash !== previousDataHash) {
+        setRoadtrip(filteredData);
+        console.log('🔍 Roadtrip mis à jour - Nombre d\'étapes filtrées:', filteredData.steps?.length || 0);
+      } else {
+        console.log('🔍 Roadtrip inchangé - Pas de mise à jour nécessaire');
+      }
       // console.log('Roadtrip récupéré:', filteredData); // Désactivé pour éviter la saturation des logs
 
     } catch (error) {
@@ -325,17 +354,49 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     }
   };
 
-  // Fonction de refresh silencieux (sans loading) pour éviter le changement d'onglet
+  // Fonction de refresh silencieux ULTRA-OPTIMISÉE (sans loading) pour éviter TOUS les re-renders
   const fetchRoadtripSilent = async () => {
     try {
+      // Ne pas faire de polling si l'utilisateur est en train de scroller
+      if (isScrollingRef.current) {
+        console.log('🔍 Polling: Skip - utilisateur en train de scroller');
+        return;
+      }
+
       const response = await fetch(`${config.BACKEND_URL}/roadtrips/${roadtripId}`);
       const data = await response.json();
 
-      // Vérifiez la cohérence des dates et mettez à jour le nombre d'alertes
+      // Créer un hash minimal pour détecter les vrais changements
+      const quickHash = JSON.stringify({
+        stepCount: data.steps?.length || 0,
+        stepIds: data.steps?.map((s: any) => s._id).sort().join(',') || '',
+        name: data.name,
+        lastModified: data.updatedAt || data._id // Utiliser un champ de modification si disponible
+      });
+
+      // Si rien n'a changé, ne faire AUCUNE mise à jour d'état
+      if (quickHash === lastPollingHashRef.current) {
+        console.log('🔍 Polling: Aucun changement détecté - Skip complet');
+        return;
+      }
+
+      console.log('🔍 Polling: Changement détecté - Analyse détaillée...');
+
+      // Seulement si changement détecté, faire l'analyse complète
       const { alerts, errorMessages } = checkDateConsistency(data);
-      console.log('Alertes (refresh silencieux):', alerts);
-      setAlertCount(alerts);
-      setErrors(errorMessages);
+      
+      // Ne mettre à jour les alertes que si elles ont changé
+      if (alerts !== alertCount) {
+        setAlertCount(alerts);
+      }
+      
+      // Ne mettre à jour les erreurs que si elles ont changé
+      const currentErrorsHash = JSON.stringify(errorMessages.map(e => ({ stepId: e.stepId, message: e.message })));
+      const previousErrorsHash = JSON.stringify(errors.map(e => ({ stepId: e.stepId, message: e.message })));
+      
+      if (currentErrorsHash !== previousErrorsHash) {
+        setErrors(errorMessages);
+      }
 
       // Vérifier les adresses manquantes (mode silencieux)
       const missingAddresses = checkMissingAddresses(data.steps);
@@ -362,8 +423,55 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         })),
       };
 
-      setRoadtrip(filteredData);
-      console.log('Roadtrip récupéré (refresh silencieux):', filteredData);
+      // Comparer avec les données actuelles pour éviter les re-renders inutiles
+      const currentFullHash = JSON.stringify({
+        steps: filteredData.steps.map(s => ({
+          id: s.id,
+          name: s.name,
+          arrivalDateTime: s.arrivalDateTime,
+          departureDateTime: s.departureDateTime,
+          type: s.type,
+          thumbnail: s.thumbnail,
+          travelTimePreviousStep: s.travelTimePreviousStep,
+          distancePreviousStep: s.distancePreviousStep,
+          travelTimeNote: s.travelTimeNote,
+          accommodations: s.accommodations,
+          activities: s.activities
+        })),
+        name: filteredData.name
+      });
+      
+      const previousFullHash = roadtripDataRef.current ? JSON.stringify({
+        steps: roadtripDataRef.current.steps.map(s => ({
+          id: s.id,
+          name: s.name,
+          arrivalDateTime: s.arrivalDateTime,
+          departureDateTime: s.departureDateTime,
+          type: s.type,
+          thumbnail: s.thumbnail,
+          travelTimePreviousStep: s.travelTimePreviousStep,
+          distancePreviousStep: s.distancePreviousStep,
+          travelTimeNote: s.travelTimeNote,
+          accommodations: s.accommodations,
+          activities: s.activities
+        })),
+        name: roadtripDataRef.current.name
+      }) : '';
+
+      // Mettre à jour les références
+      roadtripDataRef.current = filteredData;
+      lastPollingHashRef.current = quickHash;
+      
+      // Mise à jour SIMPLIFIÉE pour éviter le scintillement
+      if (currentFullHash !== previousFullHash) {
+        if (isScrollingRef.current) {
+          // Stocker la mise à jour en attente
+          pendingUpdateRef.current = filteredData;
+        } else {
+          // Mise à jour immédiate si pas de scroll
+          setRoadtrip(filteredData);
+        }
+      }
 
     } catch (error) {
       console.error('Erreur lors de la récupération du roadtrip (refresh silencieux):', error);
@@ -422,20 +530,22 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     setShowAddStepModal(true);
   }
 
-  // Afficher une icône de notification en haut à droite
+  // Afficher les boutons dans le header supérieur
   useEffect(() => {
     console.log('Mise à jour de la barre de navigation');
     
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-          {/* Bouton d'ajout d'étape */}
-          <TouchableOpacity 
-            onPress={handleAddStep}
-            style={{ marginRight: 15 }}
-          >
-            <Icon name="plus" size={24} color="#007BFF" />
-          </TouchableOpacity>
+          {/* Bouton Chatbot */}
+          {isChatAvailable && (
+            <TouchableOpacity 
+              onPress={() => setChatVisible(true)}
+              style={{ marginRight: 15 }}
+            >
+              <Icon name="robot" size={24} color="#007BFF" />
+            </TouchableOpacity>
+          )}
           
           {/* Bouton de notifications */}
           <NotificationButton 
@@ -450,7 +560,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         </View>
       ),
     });
-  }, [handleAddStep, navigation, roadtripId, unreadCount, boostPolling]);
+  }, [navigation, roadtripId, unreadCount, boostPolling, isChatAvailable]);
 
   // Fonction pour gérer l'ajout classique d'un step
   const handleAddStepClassic = () => {
@@ -694,7 +804,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     return getActivityTypeColor(mainActivityType);
   }, [getStepMainActivityType]);
 
-  // Optimisation : mémoïsation du tri des steps avec pré-calculs OPTIMISÉE
+  // Optimisation : mémoïsation du tri des steps avec pré-calculs OPTIMISÉE POUR ÉVITER LES RE-RENDERS
   const sortedSteps = useMemo(() => {
     return trackPerformance('sortedSteps calculation', () => {
       if (!roadtrip?.steps) return [];
@@ -720,7 +830,11 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         }
       }));
     });
-  }, [roadtrip?.steps, errors.length]); // Utiliser errors.length au lieu de errors pour éviter les re-renders
+  }, [
+    roadtrip?.steps?.length, // Utiliser uniquement la longueur pour éviter les re-renders
+    roadtrip?.steps?.map(s => s.id).join(','), // Vérifier seulement les IDs
+    errors.length // Utiliser seulement la longueur
+  ]); // Dépendances minimalistes pour éviter les re-calculs
 
   // 🔍 Monitoring des re-renders après la déclaration de sortedSteps
   useEffect(() => {
@@ -740,7 +854,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     }
   }, []);
 
-  // Optimisation : renderItem simplifié utilisant le composant optimisé
+  // Optimisation : renderItem SIMPLIFIÉ
   const renderStepItem = useCallback(({ item, index }) => {
     return (
       <StepItem
@@ -754,7 +868,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         loadedImagesRef={loadedImagesRef}
       />
     );
-  }, [sortedSteps.length, getTravelInfoBackgroundColor, renderRightActions, handleStepPress]); // Utiliser .length pour éviter les re-renders
+  }, []); // Aucune dépendance pour éviter les re-créations
 
   if (loading) {
     return (
@@ -779,42 +893,72 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <Text style={styles.title}>{roadtrip.name}</Text>
       <FlatList
+        ref={flatListRef}
         data={sortedSteps}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id} // Utiliser l'ID simple pour plus de stabilité
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={renderStepItem}
-        // Optimisations de performance FlatList - Mode équilibré pour fluidité
-        removeClippedSubviews={true}
-        initialNumToRender={5}                    // Plus d'éléments pour éviter les blancs
-        maxToRenderPerBatch={3}                   // Rendu par petits groupes
-        updateCellsBatchingPeriod={100}           // Plus réactif
-        windowSize={7}                            // Plus de fenêtre pour fluidité
-        scrollEventThrottle={16}                  // Plus d'events scroll pour fluidité
+        // Optimisations de performance FlatList - Mode FLUIDE SIMPLE
+        removeClippedSubviews={false}             // Désactivé pour éviter les saccades
+        initialNumToRender={10}                   // Plus d'éléments initiaux
+        maxToRenderPerBatch={5}                   // Batches plus gros
+        updateCellsBatchingPeriod={50}            // Plus réactif
+        windowSize={10}                           // Fenêtre plus large
+        scrollEventThrottle={16}                  // 60fps
         legacyImplementation={false}
-        // Anti-fuite mémoire ÉQUILIBRÉE
-        onEndReachedThreshold={0.3}               // Plus de marge
+        // Anti-fuite mémoire
+        onEndReachedThreshold={0.1}               
         disableVirtualization={false}
-        // Optimisation images
-        progressViewOffset={-40}
-        // Animations fluides
+        // Stabilité visuelle
         showsVerticalScrollIndicator={true}
-        bounces={true}                            // Réactiver les animations naturelles
-        overScrollMode="auto"                     // Restaurer le comportement natif
-        // Callback de performance OPTIMISÉ
-        onScrollBeginDrag={() => {
-          // Préparation au scroll - nettoyer la mémoire seulement si nécessaire
-          if (global.gc && loadedImagesRef.current.size > 20) {
-            global.gc();
-          }
+        bounces={true}                            
+        overScrollMode="auto"
+        // Supprimer getItemLayout pour éviter les saccades
+        // extraData supprimé pour éviter les re-renders                     
+        // PRÉSERVATION SIMPLE DE LA POSITION DU SCROLL
+        onScroll={(event) => {
+          scrollPositionRef.current = event.nativeEvent.contentOffset.y;
         }}
-        // Optimisation supplémentaire : réduire les re-renders pendant le scroll
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 1000,        // Très tolérant pour éviter les sauts
+        }}
+        // Simplifier la gestion du contenu
+        onContentSizeChange={() => {
+          // Ne rien faire pour éviter les conflits
+        }}
+        // Tracking du scroll SIMPLIFIÉ
+        onScrollBeginDrag={() => {
+          isScrollingRef.current = true;
+        }}
+        onScrollEndDrag={() => {
+          // Délai court pour le drag
+          setTimeout(() => {
+            isScrollingRef.current = false;
+            
+            // Appliquer une mise à jour en attente s'il y en a une
+            if (pendingUpdateRef.current) {
+              setRoadtrip(pendingUpdateRef.current);
+              pendingUpdateRef.current = null;
+            }
+          }, 300);
+        }}
         onMomentumScrollBegin={() => {
-          // Désactiver temporairement certaines optimisations pendant le scroll rapide
+          isScrollingRef.current = true;
         }}
         onMomentumScrollEnd={() => {
-          // Réactiver les optimisations après le scroll
+          // Délai après momentum
+          setTimeout(() => {
+            isScrollingRef.current = false;
+            
+            // Appliquer une mise à jour en attente s'il y en a une
+            if (pendingUpdateRef.current) {
+              setRoadtrip(pendingUpdateRef.current);
+              pendingUpdateRef.current = null;
+            }
+          }, 500);
         }}
       />
       
@@ -861,6 +1005,24 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
+      
+      {/* FAB pour ajouter une étape - Retour à la position originale */}
+      <FAB
+        style={styles.fab}
+        icon="plus"
+        onPress={handleAddStep}
+        color="white"
+      />
+      
+      {/* ChatBot Modal */}
+      {isChatAvailable && (
+        <ChatBot
+          visible={chatVisible}
+          onClose={() => setChatVisible(false)}
+          roadtripId={roadtripId}
+          token={''} // Récupérer le token si nécessaire
+        />
+      )}
     </View>
   );
 
@@ -898,7 +1060,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   }
 
   return (
-    <ChatLayout showChatButton={isChatAvailable}>
+    <ChatLayout showChatButton={false}>
       <Tab.Navigator
         key={`${navigatorKey}-${activeTab}`}
         id={undefined}
@@ -1251,5 +1413,13 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     color: '#999',
+  },
+  // Style FAB - Retour à la position originale
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#007BFF',
   },
 });

@@ -61,8 +61,8 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100,
-    right: 20,
+    bottom: 60,
+    left: 20,
     zIndex: 1000,
     elevation: 8,
     shadowColor: '#000',
