@@ -8,6 +8,14 @@ import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RoadTripsScreen from './src/screens/RoadTripsScreen'; // Assurez-vous que le nom du fichier est correct
 import RoadTripScreen from './src/screens/RoadTripScreen';
+import RoadTripScreenMinimal from './src/screens/RoadTripScreenMinimal';
+import RoadTripScreenTest1 from './src/screens/RoadTripScreenTest1';
+import RoadTripScreenTest2 from './src/screens/RoadTripScreenTest2';
+import RoadTripScreenTest3 from './src/screens/RoadTripScreenTest3';
+import RoadTripScreenTest4 from './src/screens/RoadTripScreenTest4';
+import RoadTripScreenTest6 from './src/screens/RoadTripScreenTest6';
+import RoadTripScreenTest7 from './src/screens/RoadTripScreenTest7';
+import RoadTripScreenTest8 from './src/screens/RoadTripScreenTest8';
 import EditRoadTripScreen from './src/screens/EditRoadTripScreen';
 import StepScreen from './src/screens/StepScreen';
 import StageScreen from './src/screens/StageScreen';
@@ -94,7 +102,7 @@ export default function App() {
                   ),
                 })}
               />
-              <Stack.Screen name="RoadTrip" component={RoadTripScreen} options={{ title: 'Mes RoadTrips' }} />
+              <Stack.Screen name="RoadTrip" component={RoadTripScreen} options={{ title: 'RoadTrip - Animation optimisée' }} />
               <Stack.Screen name="EditRoadTrip" component={EditRoadTripScreen} options={{ title: 'Modifier le RoadTrip' }} />
               <Stack.Screen name="Step" component={StepScreen} options={{ title: 'Liste des étapes' }} />
               <Stack.Screen name="Stage" component={StageScreen} options={{ title: 'Liste des étapes' }} />

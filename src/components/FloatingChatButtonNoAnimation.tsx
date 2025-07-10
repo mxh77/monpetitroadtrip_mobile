@@ -13,14 +13,14 @@ interface FloatingChatButtonProps {
   visible?: boolean;
 }
 
-const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
+const FloatingChatButtonNoAnimation: React.FC<FloatingChatButtonProps> = ({
   roadtripId,
   token,
   visible = true,
 }) => {
   const [chatVisible, setChatVisible] = useState(false);
 
-  // Animation de pulsation DÉSACTIVÉE pour éviter les dropped frames
+  // Animation de pulsation DÉSACTIVÉE pour tester les performances
 
   const openChat = () => {
     if (roadtripId) {
@@ -91,4 +91,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FloatingChatButton;
+export default FloatingChatButtonNoAnimation;
