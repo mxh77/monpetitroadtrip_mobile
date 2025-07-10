@@ -136,21 +136,27 @@ const StepItem = memo(({
       {/* Informations de trajet (seulement pour les étapes après la première) */}
       {index > 0 && (
         <View style={styles.travelInfoContainer}>
-          <View style={styles.travelInfoLine} />
+          {/* <View style={styles.travelInfoLine} /> */}
           <View style={[
             styles.travelInfo,
             { backgroundColor: getTravelInfoBackgroundColor(step.travelTimeNote) }
           ]}>
-            <Image 
-              source={rvIcon} 
-              style={[styles.travelIcon, { width: 32, height: 32 }]} 
-            />
-            <Text style={styles.travelText}>
-              {formatTravelTime(step.travelTimePreviousStep)}
-            </Text>
-            <Text style={styles.travelText}>
-              {formatDistance(step.distancePreviousStep)}
-            </Text>
+            <View style={[styles.travelIconContainer, { backgroundColor: 'transparent' }]}>
+              <Icon 
+                name="route" 
+                size={28} 
+                color="#007BFF" 
+                style={styles.travelIcon} 
+              />
+            </View>
+            <View style={styles.travelTextContainer}>
+              <Text style={styles.travelText}>
+                {formatTravelTime(step.travelTimePreviousStep)}
+              </Text>
+              <Text style={styles.travelText}>
+                {formatDistance(step.distancePreviousStep)}
+              </Text>
+            </View>
           </View>
         </View>
       )}
@@ -196,12 +202,12 @@ const StepItem = memo(({
               )}
               {precomputed.activeCounts?.accommodations > 0 && (
                 <Badge style={styles.accommodationBadge}>
-                  {precomputed.activeCounts.accommodations}
+                  {String(precomputed.activeCounts.accommodations)}
                 </Badge>
               )}
               {precomputed.activeCounts?.activities > 0 && (
                 <Badge style={styles.activityBadge}>
-                  {precomputed.activeCounts.activities}
+                  {String(precomputed.activeCounts.activities)}
                 </Badge>
               )}
             </View>

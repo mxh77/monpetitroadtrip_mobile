@@ -407,38 +407,6 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     };
   }, [navigation]);
 
-  // Afficher une icône de notification et paramètres en haut à droite
-  useEffect(() => {
-    console.log('Mise à jour de la barre de navigation');
-    
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-          {/* Bouton de notifications */}
-          <NotificationButton 
-            roadtripId={roadtripId}
-            unreadCount={unreadCount}
-            onPress={(roadtripId) => {
-              navigation.navigate('Notifications', { roadtripId });
-              boostPolling(roadtripId, 30000);
-            }}
-            style={{ marginRight: 10 }}
-          />
-          
-          {/* Alertes existantes */}
-          {alertCount > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('Errors', { roadtripId, errors })}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-                <Icon name="bell" size={24} color="red" />
-                <Text style={{ color: 'red', marginLeft: 10 }}>{alertCount}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
-      ),
-    });
-  }, [navigation, alertCount, errors, roadtripId, unreadCount, boostPolling]);
-
   // Fonction pour gérer la navigation vers la page de détails du step
   const handleStepPress = (step: any) => {
     navigation.navigate('Step', {
@@ -453,6 +421,36 @@ export default function RoadTripScreen({ route, navigation }: Props) {
   const handleAddStep = () => {
     setShowAddStepModal(true);
   }
+
+  // Afficher une icône de notification en haut à droite
+  useEffect(() => {
+    console.log('Mise à jour de la barre de navigation');
+    
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
+          {/* Bouton d'ajout d'étape */}
+          <TouchableOpacity 
+            onPress={handleAddStep}
+            style={{ marginRight: 15 }}
+          >
+            <Icon name="plus" size={24} color="#007BFF" />
+          </TouchableOpacity>
+          
+          {/* Bouton de notifications */}
+          <NotificationButton 
+            roadtripId={roadtripId}
+            unreadCount={unreadCount}
+            onPress={(roadtripId) => {
+              navigation.navigate('Notifications', { roadtripId });
+              boostPolling(roadtripId, 30000);
+            }}
+            style={{ marginRight: 10 }}
+          />
+        </View>
+      ),
+    });
+  }, [handleAddStep, navigation, roadtripId, unreadCount, boostPolling]);
 
   // Fonction pour gérer l'ajout classique d'un step
   const handleAddStepClassic = () => {
@@ -742,20 +740,6 @@ export default function RoadTripScreen({ route, navigation }: Props) {
     }
   }, []);
 
-  // Optimisation : getItemLayout pour de meilleures performances de scroll
-  const getItemLayout = useCallback((data: any, index: number) => {
-    const STEP_CARD_HEIGHT = 200; // Hauteur de la carte step
-    const TRAVEL_INFO_HEIGHT = index > 0 ? 60 : 0; // Hauteur travel info (seulement après le premier élément)
-    const ITEM_MARGIN = 16;   // Marge entre les éléments
-    const TOTAL_ITEM_HEIGHT = STEP_CARD_HEIGHT + TRAVEL_INFO_HEIGHT + ITEM_MARGIN;
-    
-    return {
-      length: TOTAL_ITEM_HEIGHT,
-      offset: TOTAL_ITEM_HEIGHT * index,
-      index,
-    };
-  }, []);
-
   // Optimisation : renderItem simplifié utilisant le composant optimisé
   const renderStepItem = useCallback(({ item, index }) => {
     return (
@@ -770,7 +754,7 @@ export default function RoadTripScreen({ route, navigation }: Props) {
         loadedImagesRef={loadedImagesRef}
       />
     );
-  }, [sortedSteps, getTravelInfoBackgroundColor, renderRightActions, handleStepPress]);
+  }, [sortedSteps.length, getTravelInfoBackgroundColor, renderRightActions, handleStepPress]); // Utiliser .length pour éviter les re-renders
 
   if (loading) {
     return (
@@ -801,36 +785,37 @@ export default function RoadTripScreen({ route, navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         renderItem={renderStepItem}
-        // Optimisations de performance FlatList - Mode anti-dropped frames EXTREME
+        // Optimisations de performance FlatList - Mode équilibré pour fluidité
         removeClippedSubviews={true}
-        initialNumToRender={2}                    // Minimum absolu
-        maxToRenderPerBatch={1}                   // Rendu 1 par 1 pour éviter les freeze
-        updateCellsBatchingPeriod={250}           // Encore plus lent mais plus fluide
-        windowSize={3}                            // Minimum pour éviter les blancs
-        scrollEventThrottle={64}                  // Moins d'events scroll
+        initialNumToRender={5}                    // Plus d'éléments pour éviter les blancs
+        maxToRenderPerBatch={3}                   // Rendu par petits groupes
+        updateCellsBatchingPeriod={100}           // Plus réactif
+        windowSize={7}                            // Plus de fenêtre pour fluidité
+        scrollEventThrottle={16}                  // Plus d'events scroll pour fluidité
         legacyImplementation={false}
-        // Anti-fuite mémoire RENFORCÉE
-        onEndReachedThreshold={0.1}               // Très bas pour éviter les pre-loads
+        // Anti-fuite mémoire ÉQUILIBRÉE
+        onEndReachedThreshold={0.3}               // Plus de marge
         disableVirtualization={false}
         // Optimisation images
         progressViewOffset={-40}
-        // Réduire les animations
-        showsVerticalScrollIndicator={false}
-        bounces={false}                           // Réduire les animations
-        overScrollMode="never"                    // Android uniquement
-        // Callback de performance
+        // Animations fluides
+        showsVerticalScrollIndicator={true}
+        bounces={true}                            // Réactiver les animations naturelles
+        overScrollMode="auto"                     // Restaurer le comportement natif
+        // Callback de performance OPTIMISÉ
         onScrollBeginDrag={() => {
-          // Préparation au scroll - nettoyer la mémoire si nécessaire
-          if (global.gc && loadedImagesRef.current.size > 10) {
+          // Préparation au scroll - nettoyer la mémoire seulement si nécessaire
+          if (global.gc && loadedImagesRef.current.size > 20) {
             global.gc();
           }
         }}
-      />
-      <FAB
-        style={styles.fab}
-        small
-        icon="plus"
-        onPress={handleAddStep}
+        // Optimisation supplémentaire : réduire les re-renders pendant le scroll
+        onMomentumScrollBegin={() => {
+          // Désactiver temporairement certaines optimisations pendant le scroll rapide
+        }}
+        onMomentumScrollEnd={() => {
+          // Réactiver les optimisations après le scroll
+        }}
       />
       
       {/* Modal de choix d'ajout d'étape */}
@@ -1112,13 +1097,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 8,
   },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#007BFF',
-  },
   deleteButton: {
     backgroundColor: '#e63946',
     justifyContent: 'center',
@@ -1153,25 +1131,56 @@ const styles = StyleSheet.create({
   },
   travelInfoContainer: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    marginTop: 8,
+    position: 'relative',
   },
   travelInfo: {
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 12,
     backgroundColor: '#f0f0f0',
     alignItems: 'center',
+    minWidth: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   travelInfoLine: {
-    width: 2,
-    height: 20,
-    backgroundColor: 'gray',
+    width: 4,
+    height: 28,
+    backgroundColor: '#e3e6ea',
+    borderRadius: 2,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   travelIcon: {
-    marginVertical: 5,
+    marginVertical: 6,
+    opacity: 0.8,
+  },
+  travelIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 4,
+  },
+  travelTextContainer: {
+    alignItems: 'center',
+    marginTop: 4,
   },
   travelText: {
-    fontSize: 14,
-    color: 'gray',
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '500',
+    textAlign: 'center',
+    marginVertical: 2,
   },
   // Styles pour le modal
   modalOverlay: {
